@@ -1,5 +1,5 @@
 // js/main.js
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { onAuthStateChanged, getRedirectResult } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"; // ← getRedirectResultを追加
 import { auth } from "./firebase.js";
 import { CONSTANTS } from "./config.js";
 import { State } from "./state.js";
@@ -17,6 +17,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     UIManager.init();
     await fetchSpecialSchedules();
     
+    // 【追加】リダイレクトログインから戻ってきた場合の結果処理
+    // ログイン自体は onAuthStateChanged で処理されますが、エラーハンドリングのために必要です
+    getRedirectResult(auth)
+        .then((result) => {
+            if (result) {
+                console.log("Redirect login success:", result.user.displayName);
+            }
+        })
+        .catch((error) => {
+            console.error("Login Failed:", error);
+            alert("ログインに失敗しました。\n" + error.message);
+        });
+
     onAuthStateChanged(auth, (user) => {
         const loginContainer = document.getElementById('login-container');
         const userInfo = document.getElementById('user-info');
@@ -180,7 +193,6 @@ export function activateTimeInput() {
     }
     UIManager.updateAll();
     
-    // 【修正】標準ピッカーを表示
     const input = document.getElementById('visit-time');
     setTimeout(() => { if(input.showPicker) input.showPicker(); else input.focus(); }, 100);
 }
