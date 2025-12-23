@@ -1,18 +1,17 @@
 // js/db.js
 import { 
     collection, addDoc, updateDoc, deleteDoc, setDoc, getDocs, getDoc,
-    doc, onSnapshot, query, orderBy, serverTimestamp, limit 
+    doc, onSnapshot, query, orderBy, serverTimestamp, limit, where 
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
 import { db } from "./firebase.js";
 import { State } from "./state.js";
 import { CONSTANTS } from "./config.js";
 import { Logic } from "./logic.js";
 import { UIManager } from "./ui.js";
-
-// 他モジュールから呼び出すヘルパー
 import { deactivateTimeInput, resetInput } from "./main.js";
 
-// === Config Loader (Phase 3 Added) ===
+// === Config Loader ===
 export async function fetchSpecialSchedules() {
     try {
         const docRef = doc(db, "config", "schedules");
@@ -39,18 +38,14 @@ export function initFirestoreListener() {
     onSnapshot(q, (snapshot) => {
         State.logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         
-        // リロード時などの自動状態復元
         if (!State.editingId) {
             const dateVal = document.getElementById('visit-date').value;
-            
             if (dateVal === Logic.getTodayStr()) {
                 State.input.count = Logic.calculateNextCount(dateVal);
             }
-
             if (Logic.isSpecialPeriod(dateVal)) {
                 document.getElementById('special-mode-check').checked = true;
             }
-
             const todaysLogs = State.logs.filter(l => l.date === dateVal);
             if (todaysLogs.length > 0) {
                 const latestLog = todaysLogs[0];
@@ -77,6 +72,23 @@ export function initFirestoreListener() {
     }, (error) => console.error("Firestore Error:", error));
 }
 
+export function initPublishedStatusListener() {
+    if (!State.user) return;
+
+    const q = query(collection(db, "shared_reports"), where("author.uid", "==", State.user.uid));
+    
+    onSnapshot(q, (snapshot) => {
+        State.publishedDates = new Set();
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            if (data.date) {
+                State.publishedDates.add(data.date);
+            }
+        });
+        UIManager.renderHistory(); 
+    });
+}
+
 // === CRUD Operations ===
 export async function saveToFirestore() {
     if (!State.user) { alert(CONSTANTS.MESSAGES.loginRequired); return; }
@@ -100,7 +112,6 @@ export async function saveToFirestore() {
             if (!confirm(CONSTANTS.MESSAGES.specialOffCaution)) return;
         }
 
-        // Firestoreの定義を確認し、なければデフォルト(1-3月)で警告
         const hasDef = State.specialSchedules.some(def => def.year === year);
         if (!hasDef && month <= 2 && !isSpecialMode) {
             if (!confirm(CONSTANTS.MESSAGES.janMarCaution)) return;
@@ -139,36 +150,73 @@ export async function saveToFirestore() {
         deactivateTimeInput(); 
         resetInput(false);
 
-        if (isUpdate && confirm(CONSTANTS.MESSAGES.confirmSync)) {
+        if (State.publishedDates.has(dateVal)) {
             setTimeout(() => shareDailyReport(dateVal, true), 500);
         }
 
     } catch (e) { alert("保存失敗: " + e.message); }
 }
 
-export const deleteLog = async (id) => { 
-    if (!confirm(CONSTANTS.MESSAGES.confirmDelete)) return;
-    try {
-        const targetLog = State.logs.find(l => l.id === id);
-        const targetDate = targetLog ? targetLog.date : null;
+export const deleteLog = async (id, fromShared = false) => { 
+    const targetLog = State.logs.find(l => l.id === id);
+    if (!targetLog) return; 
 
+    const targetDate = targetLog.date;
+    const isPublished = State.publishedDates.has(targetDate);
+    
+    let confirmMsg;
+    if (fromShared) {
+        confirmMsg = CONSTANTS.MESSAGES.confirmDeleteFromShared;
+    } else {
+        confirmMsg = isPublished 
+            ? CONSTANTS.MESSAGES.confirmDeletePublished 
+            : CONSTANTS.MESSAGES.confirmDelete;
+    }
+
+    if (!confirm(confirmMsg)) return;
+
+    try {
         await deleteDoc(doc(db, "logs", id));
         
-        if (targetDate && confirm(CONSTANTS.MESSAGES.confirmSync)) {
+        if (targetDate && isPublished) {
             setTimeout(() => shareDailyReport(targetDate, true), 500);
         }
+
     } catch(e) { console.error(e); }
 };
 
 // === Shared Database Operations ===
+
+export const togglePublish = async (dateStr, isTurningOn) => {
+    if (!State.user) return;
+
+    if (isTurningOn) {
+        await shareDailyReport(dateStr, true);
+    } else {
+        const docId = `${dateStr}_${State.user.uid}`;
+        try {
+            await deleteDoc(doc(db, "shared_reports", docId));
+            State.publishedDates.delete(dateStr);
+            UIManager.renderHistory();
+        } catch(e) {
+            console.error("非公開化エラー:", e);
+        }
+    }
+};
+
 export const shareDailyReport = async (targetDate, silent = false) => {
     if (!State.user) return;
-    if (!silent && !confirm(`【確認】\n${targetDate} の記録を共有データベースに送信しますか？\n（既に送信済みの場合は上書きされます）`)) return;
 
     const logs = State.logs.filter(l => l.date === targetDate);
-    if (logs.length === 0) { 
-        if(!silent) alert("送信するログがありません。"); 
-        return; 
+    const docId = `${targetDate}_${State.user.uid}`;
+    const reportRef = doc(db, "shared_reports", docId);
+
+    if (logs.length === 0) {
+        try {
+            await deleteDoc(reportRef);
+            console.log("ログなしのため共有レポート削除");
+        } catch (e) { /* ignore */ }
+        return;
     }
 
     const summary = { A: {}, B: {}, C: {} };
@@ -183,7 +231,12 @@ export const shareDailyReport = async (targetDate, silent = false) => {
 
     const reportData = {
         date: targetDate,
-        author: { uid: State.user.uid, name: State.user.displayName, photoURL: State.user.photoURL, screenName: State.user.reloadUserInfo.screenName || "" },
+        author: { 
+            uid: State.user.uid, 
+            name: State.user.displayName, 
+            photoURL: State.user.photoURL, 
+            screenName: State.user.reloadUserInfo.screenName || "" 
+        },
         updatedAt: serverTimestamp(),
         summary: summary,
         suspended: suspended,
@@ -195,11 +248,10 @@ export const shareDailyReport = async (targetDate, silent = false) => {
     };
 
     try {
-        const docId = `${targetDate}_${State.user.uid}`;
-        await setDoc(doc(db, "shared_reports", docId), reportData);
-        if(!silent) alert(CONSTANTS.MESSAGES.shareSuccess);
+        await setDoc(reportRef, reportData);
+        if(!silent) alert("公開しました！");
     } catch (e) {
-        if(!silent) alert("共有失敗: " + e.message);
+        if(!silent) alert("公開失敗: " + e.message);
     }
 };
 
@@ -254,7 +306,6 @@ function renderStatusTab(reports, container) {
         const suspended = r.suspended || [];
         const dateStr = r.date.replace(/-/g, '/'); 
         const iconUrl = r.author.photoURL || ''; 
-        // アイコン画像タグ生成
         const iconTag = iconUrl ? `<img src="${iconUrl}" class="author-icon-mini">` : '';
         
         const getCells = (tour) => {
@@ -309,19 +360,34 @@ function renderLogsTab(reports, container) {
         
         const isMine = (State.user && l.author.uid === State.user.uid && l.id);
 
+        // === 表示用データ作成 (箱なし・テキスト強調版) ===
+        const vehicleStr = l.vehicle ? l.vehicle : '--'; 
+        const profileName = (l.profile && l.profile !== 'UNKNOWN' && l.profile !== 'TOWER 1') 
+            ? CONSTANTS.PROFILES[l.profile] : '';
+        const profileHtml = profileName ? `<span class="text-profile">(${profileName})</span>` : '';
+
         html += `
         <div class="shared-log-item">
             <span class="sl-date">${dateStr}</span>
             <span class="sl-time">${l.time || '--:--'}</span>
+            
             <span class="sl-main">
-                ${l.tour}-${l.floor}F / No.${l.vehicle || '-'} ${profileStr}
+                <div class="log-main-wrapper">
+                    <span class="text-location">${l.tour}-${l.floor}F</span>
+                    <span class="text-separator">/</span>
+                    <span class="text-vehicle">
+                        <span class="label-no">No.</span>${vehicleStr}
+                    </span>
+                    ${profileHtml}
+                </div>
             </span>
+            
             ${isMine ? `
             <div class="sl-actions">
-                <button class="sl-btn" onclick="window.closeSharedDbModal(); window.editLog('${l.id}')">
+                <button class="sl-btn" onclick="window.closeSharedDbModal(); window.editLog('${l.id}', true)">
                     <span class="material-symbols-outlined icon-sm" style="font-size:1rem;">edit</span>
                 </button>
-                <button class="sl-btn" onclick="window.closeSharedDbModal(); window.deleteLog('${l.id}')">
+                <button class="sl-btn" onclick="window.closeSharedDbModal(); window.deleteLog('${l.id}', true)">
                     <span class="material-symbols-outlined icon-sm" style="font-size:1rem;">delete</span>
                 </button>
             </div>` : ''}

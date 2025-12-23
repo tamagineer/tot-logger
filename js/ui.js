@@ -2,11 +2,10 @@
 import { CONSTANTS } from './config.js';
 import { State } from './state.js';
 import { Logic } from './logic.js';
-// 循環参照を避けるため、main.jsでバインドされる関数や動的に必要な関数は
-// 外部から注入するか、グローバル経由で呼ぶ設計にします（今回は一部グローバル使用を許容）
 
 export const UIManager = {
     els: {},
+    
     init() {
         this.els = {
             date: document.getElementById('visit-date'), 
@@ -66,7 +65,6 @@ export const UIManager = {
         const dailyState = Logic.calculateDailyState(this.els.date.value, State.editingId);
 
         document.querySelectorAll('.floor-btn').forEach(btn => {
-            // dataset.floor を main.js で付与済みと想定、またはテキストから判定
             const val = parseInt(btn.dataset.floor || btn.innerText);
             btn.classList.toggle('selected', s.floor === val);
         });
@@ -88,7 +86,7 @@ export const UIManager = {
         }
 
         document.querySelectorAll('.profile-btn').forEach(btn => {
-            const btnVal = btn.dataset.profile; // HTML側で data-profile を付与する前提
+            const btnVal = btn.dataset.profile;
             if(!btnVal) return;
             
             btn.classList.toggle('selected', s.profile === btnVal);
@@ -110,7 +108,6 @@ export const UIManager = {
         });
     },
 
-    // 改善点: innerHTMLではなくcreateElementとイベントリスナーを使用
     updateVehicleGrid() {
         const container = this.els.vehicleContainer; if(!container) return;
         container.innerHTML = ''; 
@@ -119,9 +116,6 @@ export const UIManager = {
         const dailyState = Logic.calculateDailyState(this.els.date.value, State.editingId);
         const assignedInRoom = currentKey ? dailyState.assignments[currentKey] : null;
 
-        // ハンドラ関数は main.js から window に expose するか、CustomEvent を使う
-        // ここではシンプルに window.handleVehicleClick を呼ぶ形にする (Phase 1の互換性維持)
-        
         for (let i = 1; i <= 9; i++) {
             const btn = document.createElement('button'); 
             btn.className = 'btn vehicle-btn'; 
@@ -137,7 +131,6 @@ export const UIManager = {
             if (i === 9 || isCaution) btn.classList.add('btn-caution');
             if (State.input.vehicle == i || (i === 9 && State.input.vehicle >= 9)) btn.classList.add('selected');
 
-            // イベントリスナーを直接付与
             btn.addEventListener('click', () => {
                 if(window.handleVehicleClick) {
                     window.handleVehicleClick(i, isCaution, currentKey, assignedInRoom, dailyState.assignments);
@@ -167,29 +160,37 @@ export const UIManager = {
 
         let html = '';
         const selectedDate = this.els.date.value;
-        const sortedDates = Object.keys(groups).sort((a, b) => {
-            if (a === selectedDate) return -1;
-            if (b === selectedDate) return 1; 
-            return b.localeCompare(a); 
-        });
+        
+        // 【変更】純粋な日付降順ソートに変更 (選択日を特別扱いしない)
+        const sortedDates = Object.keys(groups).sort((a, b) => b.localeCompare(a));
 
-        // 注意: 複雑なリストのため innerHTML を維持するが、
-        // onclick イベントは window オブジェクト経由で実行される
         sortedDates.forEach(date => {
             const logs = groups[date];
-            const isOpen = (date === selectedDate) ? 'open' : '';
             const summaryHTML = generateDailySummaryHTML(logs, date); 
 
-            html += `<details ${isOpen}>
+            const isPublished = State.publishedDates.has(date);
+            const checkedAttr = isPublished ? 'checked' : '';
+            const publishLabel = isPublished ? '公開中' : '非公開';
+
+            // 【変更】選択中の日付の場合、クラスを追加して強調する（自動展開は廃止）
+            const highlightClass = (date === selectedDate) ? 'current-date-row' : '';
+
+            html += `<details class="${highlightClass}">
                 <summary>
                     <span class="material-symbols-outlined arrow-icon-left">chevron_right</span>
                     <div class="summary-info">
                         <span class="summary-date">${date.replace(/-/g, '/')}</span>
                         <span class="summary-count">${logs.length}件</span>
                     </div>
-                    <button class="share-btn" onclick="window.shareDailyReport('${date}')">
-                        <span class="material-symbols-outlined" style="font-size:1.1em;">share</span> 共有
-                    </button>
+                    
+                    <div class="publish-switch-area" onclick="event.stopPropagation()">
+                        <span class="publish-label">${publishLabel}</span>
+                        <label class="toggle-switch small-scale">
+                            <input type="checkbox" onchange="window.handlePublishToggle('${date}', this)" ${checkedAttr}>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
                 </summary>
                 <div class="history-content">`;
             
@@ -198,14 +199,28 @@ export const UIManager = {
             
             logs.sort((a,b) => b.count - a.count).forEach(log => {
                 const isMine = State.user && log.author?.uid === State.user.uid;
+                
+                const vehicleStr = log.vehicle ? log.vehicle : '--'; 
+                const profileName = CONSTANTS.PROFILES[log.profile] || '';
+                const profileHtml = (log.profile !== 'TOWER 1' && log.profile !== 'UNKNOWN') 
+                    ? `<span class="text-profile">${profileName}</span>` : '';
+
                 html += `
                 <div class="log-entry" id="log-${log.id}">
                     <div class="log-main-row">
                         <div class="log-info-group">
                             <span class="log-count">#${log.count}</span>
                             <span class="log-time">${log.time || '--:--'}</span>
-                            <span class="log-main">${log.tour}-${log.floor}F / No.${log.vehicle || '-'}</span>
-                            <span class="log-sub">(${CONSTANTS.PROFILES[log.profile] || '不明'})</span>
+                            
+                            <div class="log-main-wrapper">
+                                <span class="text-location">${log.tour}-${log.floor}F</span>
+                                <span class="text-separator">/</span>
+                                <span class="text-vehicle">
+                                    <span class="label-no">No.</span>${vehicleStr}
+                                </span>
+                                ${profileHtml}
+                            </div>
+
                         </div>
                         ${isMine ? `
                             <div class="log-actions">

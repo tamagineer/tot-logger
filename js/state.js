@@ -3,8 +3,11 @@ export const State = {
     user: null,
     logs: [],
     
-    // Firestoreから取得したスケジュールを保持する配列
+    // Firestoreから取得した設定データ
     specialSchedules: [], 
+
+    // 【追加】自分が公開している日付のセット
+    publishedDates: new Set(),
     
     input: { 
         count: 1, floor: null, tour: null, vehicle: null, 

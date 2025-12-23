@@ -9,17 +9,14 @@ import { loginApp, logoutApp } from "./auth.js";
 import { 
     initFirestoreListener, saveToFirestore, deleteLog, 
     shareDailyReport, loadSharedReports, renderSharedContent,
-    fetchSpecialSchedules // Phase 3 Added
+    fetchSpecialSchedules, initPublishedStatusListener, togglePublish 
 } from "./db.js";
 
 // === 初期化とイベントバインディング ===
 document.addEventListener('DOMContentLoaded', async () => {
     UIManager.init();
-
-    // アプリ起動時にFirestoreから設定を読み込む
     await fetchSpecialSchedules();
     
-    // Auth State Listener
     onAuthStateChanged(auth, (user) => {
         const loginContainer = document.getElementById('login-container');
         const userInfo = document.getElementById('user-info');
@@ -29,7 +26,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             State.user = user;
             if(loginContainer) loginContainer.style.display = 'none';
             if(userInfo) userInfo.style.display = 'flex';
-            
             document.getElementById('user-name').innerText = user.displayName;
             document.getElementById('user-icon').src = user.photoURL;
             document.getElementById('user-screen-name').innerText = `@${user.reloadUserInfo.screenName || ""}`;
@@ -38,9 +34,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 userCard.classList.add('logged-in');
                 userCard.classList.remove('guest-clickable');
             }
+            
             initFirestoreListener();
+            initPublishedStatusListener();
         } else {
             State.user = null; State.logs = [];
+            State.publishedDates = new Set();
+            
             if(loginContainer) loginContainer.style.display = 'block';
             if(userInfo) userInfo.style.display = 'none';
             
@@ -52,54 +52,42 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // === Event Listeners (Replacements for onclick) ===
-    
-    // Login / Logout
+    // === Event Listeners ===
     document.getElementById('login-btn').addEventListener('click', loginApp);
     document.getElementById('logout-btn').addEventListener('click', logoutApp);
 
-    // Date & Counter
     document.getElementById('visit-date').addEventListener('change', handleDateChange);
     document.getElementById('btn-count-minus').addEventListener('click', () => updateCount(-1));
     document.getElementById('btn-count-plus').addEventListener('click', () => updateCount(1));
 
-    // Time Widget
     document.getElementById('time-widget').addEventListener('click', toggleTimeWidget);
     document.getElementById('visit-time').addEventListener('click', (e) => e.stopPropagation());
     document.querySelector('.time-clear-btn').addEventListener('click', clearTimeWidget);
 
-    // Special Mode Toggle
     document.getElementById('special-mode-check').addEventListener('change', handleModeChange);
 
-    // Floor Buttons
     document.getElementById('floor-1').addEventListener('click', () => selectFloor(1));
     document.getElementById('floor-2').addEventListener('click', () => selectFloor(2));
 
-    // Tour Buttons
     ['A', 'B', 'C'].forEach(tour => {
         document.getElementById(`tour-btn-${tour}`).addEventListener('click', () => selectTour(tour));
         document.getElementById(`suspend-btn-${tour}`).addEventListener('click', () => toggleSuspend(tour));
     });
 
-    // Profile Buttons
     document.getElementById('prof-std').addEventListener('click', () => selectProfile('TOWER 1'));
     document.getElementById('prof-l13').addEventListener('click', () => selectProfile('TOWER 2'));
     document.getElementById('prof-shadow').addEventListener('click', () => selectProfile('TOWER 3'));
     document.getElementById('prof-unknown').addEventListener('click', () => selectProfile('UNKNOWN'));
 
-    // Submit / Cancel
     document.getElementById('submit-btn').addEventListener('click', saveToFirestore);
     document.getElementById('cancel-btn').addEventListener('click', cancelEdit);
 
-    // History / Shared DB Triggers
     document.querySelector('.menu-trigger-card').addEventListener('click', toggleHistorySection);
     document.querySelector('.shared-trigger').addEventListener('click', openSharedDbModal);
     
-    // Shared DB Modal Actions
     document.querySelector('.refresh-btn').addEventListener('click', loadSharedReports);
     document.querySelector('.modal-close-btn').addEventListener('click', closeSharedDbModal);
     
-    // Tabs
     const tabs = document.querySelectorAll('.tab-btn');
     tabs[0].addEventListener('click', () => switchSharedTab('status'));
     tabs[1].addEventListener('click', () => switchSharedTab('logs'));
@@ -175,7 +163,6 @@ function toggleSuspend(tourName) {
     UIManager.updateAll();
 }
 
-// Time Widget Logic
 function toggleTimeWidget(e) {
     if (State.isTimeInputVisible) return;
     activateTimeInput();
@@ -192,6 +179,8 @@ export function activateTimeInput() {
         document.getElementById('visit-time').value = Logic.getCurrentTimeStr();
     }
     UIManager.updateAll();
+    
+    // 【修正】標準ピッカーを表示
     const input = document.getElementById('visit-time');
     setTimeout(() => { if(input.showPicker) input.showPicker(); else input.focus(); }, 100);
 }
@@ -240,7 +229,6 @@ function cancelEdit() {
     resetInput(false);
 }
 
-// === History / Shared Modal Logic ===
 function toggleHistorySection() {
     const wrapper = document.getElementById('history-container-wrapper');
     const trigger = document.querySelector('.menu-trigger-card');
@@ -269,11 +257,27 @@ function switchSharedTab(tabName) {
     renderSharedContent();
 }
 
-// === Global Expose for Dynamic HTML (backward compatibility) ===
-window.editLog = (id) => {
-    if (!confirm(CONSTANTS.MESSAGES.confirmEdit)) return;
+// === Global Expose ===
+window.editLog = (id, fromShared = false) => {
+    const log = State.logs.find(l => l.id === id); 
+    if (!log) {
+        alert("【エラー】\nこの記録の元データが端末内に見つかりませんでした。\n（既に削除されているか、データの不整合が起きている可能性があります）");
+        return;
+    }
 
-    const log = State.logs.find(l => l.id === id); if (!log) return;
+    const isPublished = State.publishedDates.has(log.date);
+    
+    let confirmMsg;
+    if (fromShared) {
+        confirmMsg = CONSTANTS.MESSAGES.confirmEditFromShared;
+    } else {
+        confirmMsg = isPublished
+            ? CONSTANTS.MESSAGES.confirmEditPublished
+            : CONSTANTS.MESSAGES.confirmEdit;
+    }
+
+    if (!confirm(confirmMsg)) return;
+
     State.editingId = id; 
     State.input = { ...log, suspendedTours: log.suspended || [] };
     
@@ -293,7 +297,6 @@ window.deleteLog = deleteLog;
 window.shareDailyReport = shareDailyReport;
 window.closeSharedDbModal = closeSharedDbModal;
 
-// Vehicle Click Handler
 window.handleVehicleClick = (num, isCaution, currentRoomKey, assigned, assignments) => {
     if (State.input.vehicle == num) {
         State.input.vehicle = null; 
@@ -318,4 +321,15 @@ window.handleVehicleClick = (num, isCaution, currentRoomKey, assigned, assignmen
     }
     State.input.vehicle = inputNum;
     UIManager.updateAll();
+};
+
+window.handlePublishToggle = (dateStr, checkbox) => {
+    const isTurningOn = checkbox.checked;
+    const message = isTurningOn ? CONSTANTS.MESSAGES.confirmPublish : CONSTANTS.MESSAGES.confirmUnpublish;
+
+    if (!confirm(message)) {
+        checkbox.checked = !isTurningOn;
+        return;
+    }
+    togglePublish(dateStr, isTurningOn);
 };

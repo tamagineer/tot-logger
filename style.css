@@ -295,8 +295,21 @@ details[open] summary .arrow-icon-left { transform: rotate(90deg); color: #fff; 
 .sl-author-img { width: 24px; height: 24px; border-radius: 50%; }
 .sl-author-name { color: #ccc; font-weight: bold; font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sl-actions { display: flex; gap: 5px; margin-right: 5px; }
-.sl-btn { background: none; border: 1px solid #444; color: #888; padding: 2px 5px; border-radius: 3px; cursor: pointer; font-size: 0.7rem; }
-.sl-btn:hover { background: #333; color: #fff; }
+.sl-btn {
+    background: none;
+    border: none;
+    color: #666;
+    padding: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+}
+.sl-btn:hover {
+    background: none;
+    color: #fff;
+}
 
 .app-footer { margin-top: 50px; padding: 20px 0; border-top: 1px solid #222; font-size: 0.75rem; color: #555; line-height: 1.6; }
 
@@ -341,4 +354,89 @@ details[open] summary .arrow-icon-left { transform: rotate(90deg); color: #fff; 
     white-space: nowrap;   /* 改行禁止 */
     overflow: hidden;
     text-overflow: ellipsis; /* 長すぎる場合は...で省略 */
+}
+
+/* === ログ表示のスタイリッシュ化（テキスト強調版） === */
+
+/* ログ情報のラッパー */
+.log-main-wrapper {
+    display: flex;
+    align-items: baseline; /* 文字のベースラインを揃える */
+    gap: 8px;
+    font-family: 'Noto Sans JP', sans-serif; /* フォント統一 */
+}
+
+/* 場所表示 (例: A-1F) */
+.text-location {
+    font-size: 1.05rem; /* 機体番号と同じか少し大きく */
+    font-weight: 700;   /* 太字 */
+    color: #fff;        /* 白文字 */
+    letter-spacing: 0.5px;
+}
+
+/* 区切り線 ( / ) */
+.text-separator {
+    color: #555;
+    font-weight: normal;
+    font-size: 0.9rem;
+    margin: 0 2px;
+}
+
+/* 機体番号の表示 (例: 6) */
+.text-vehicle {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+/* "No." のラベル */
+.label-no {
+    font-size: 0.75rem;
+    color: #888;
+    font-weight: normal;
+    margin-right: 3px;
+}
+
+/* プロファイル（通常版など）の表示 */
+.text-profile {
+    font-size: 0.75rem;
+    color: #888;
+    margin-left: 4px;
+}
+
+/* === 公開スイッチ（既存トグルの縮小版） === */
+.publish-switch-area {
+    display: flex;
+    align-items: center;
+    /* スケール縮小による余白を考慮してgapを調整 */
+    gap: 0; 
+    margin-left: auto;
+    pointer-events: auto;
+    height: 24px;
+}
+
+.publish-label {
+    font-size: 0.7rem;
+    color: #888;
+    margin-right: 8px; /* ラベルとスイッチの間隔 */
+}
+
+/* 既存の .toggle-switch を流用し、サイズだけ60%に縮小 */
+.toggle-switch.small-scale {
+    transform: scale(0.6);
+    transform-origin: right center; /* 右端基準で縮小 */
+    margin: 0;
+    flex-shrink: 0; /* 潰れないように */
+}
+
+/* 選択中の日付の強調表示 */
+details.current-date-row > summary {
+    background-color: #222; /* 通常より少し明るい背景 */
+    border-left: 3px solid #fff; /* 左端に白いアクセントライン */
+    padding-left: 12px; /* ボーダー分の調整 */
+}
+
+/* 念のためsummary内のレイアウトが崩れないように調整 */
+details.current-date-row > summary > .arrow-icon-left {
+    margin-left: -3px; /* ボーダー追加分だけアイコン位置調整 */
 }
