@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TOT Logger</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#000000">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
+    <link rel="stylesheet" href="https://use.typekit.net/erb7jzd.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="main-wrapper">
+        <header>
+            <h1>TOT LOGGER</h1>
+        </header>
+
+        <main class="app-container">
+            
+            <section class="config-section">
+                <div class="user-settings-area" id="user-card">
+                    <div id="login-container">
+                        <button id="login-btn" class="btn sign-in-btn">
+                            <span class="material-symbols-outlined">login</span>
+                            <span>サインイン</span>
+                        </button>
+                    </div>
+                    
+                    <div id="user-info" style="display: none;">
+                        <div class="user-info-left">
+                            <img id="user-icon" src="" alt="User Icon" class="user-icon-img">
+                            <div class="user-text">
+                                <div id="user-name"></div>
+                                <div id="user-screen-name"></div>
+                            </div>
+                        </div>
+                        <button id="logout-btn" class="logout-icon-btn" title="サインアウト">
+                            <span class="material-symbols-outlined">logout</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="date-counter-area">
+                    <div class="date-row">
+                        <input type="date" id="visit-date">
+                    </div>
+
+                    <div class="counter-ui">
+                        <button class="counter-btn" id="btn-count-minus">−</button>
+                        <div class="counter-display">
+                            <span id="count-val">1</span><span class="unit">回目</span>
+                        </div>
+                        <button class="counter-btn" id="btn-count-plus">＋</button>
+                    </div>
+
+                    <div class="time-section-fixed">
+                        <div id="time-widget" class="time-widget">
+                            <div class="time-placeholder">
+                                <span class="material-symbols-outlined icon-sm">schedule</span>
+                                <span class="placeholder-text">時刻を追加</span>
+                            </div>
+                            
+                            <div class="time-editor">
+                                <input type="time" id="visit-time">
+                                <button class="time-clear-btn">
+                                    <span class="material-symbols-outlined icon-sm">close</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mode-switch-area">
+                    <span class="toggle-label">スペシャルプログラム期間中</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="special-mode-check">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </section>
+
+            <section class="input-section">
+                <div class="input-block">
+                    <div class="label">フロア <span>FLOOR</span></div>
+                    <div class="grid-2">
+                        <button class="btn floor-btn" id="floor-1" data-floor="1">1F</button>
+                        <button class="btn floor-btn" id="floor-2" data-floor="2">2F</button>
+                    </div>
+                </div>
+
+                <div class="input-block">
+                    <div class="label">ツアー <span>TOUR</span></div>
+                    <div class="grid-3">
+                        <button id="tour-btn-A" class="btn tour-btn">A</button>
+                        <button id="tour-btn-B" class="btn tour-btn">B</button>
+                        <button id="tour-btn-C" class="btn tour-btn">C</button>
+                    </div>
+                    <div class="status-bar-wrapper">
+                        <div class="status-bar">
+                            <span id="room-name">フロアを選択</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-block">
+                    <div class="label">機体番号 <span>VEHICLE NO.</span></div>
+                    <div id="vehicle-container" class="vehicle-grid"></div>
+                </div>
+
+                <div class="input-block">
+                    <div class="label">落下プロファイル <span>DROP PROFILE</span></div>
+                    <div class="profile-options">
+                        <button id="prof-std" class="btn profile-btn" data-profile="TOWER 1">通常版</button>
+                        <button id="prof-l13" class="btn profile-btn" data-profile="TOWER 2">Level 13</button>
+                        <button id="prof-shadow" class="btn profile-btn" data-profile="TOWER 3">シャドウ</button>
+                        <button id="prof-unknown" class="btn profile-btn" data-profile="UNKNOWN">不明</button>
+                    </div>
+                </div>
+
+                <div class="suspension-area">
+                    <div class="label">運営休止ツアー <span>SUSPENDED</span></div>
+                    <div class="suspend-btn-container">
+                        <button id="suspend-btn-A" class="suspend-btn">Tour A</button>
+                        <button id="suspend-btn-B" class="suspend-btn">Tour B</button>
+                        <button id="suspend-btn-C" class="suspend-btn">Tour C</button>
+                    </div>
+                </div>
+
+                <div class="memo-area">
+                    <div class="label">メモ <span>MEMO</span></div>
+                    <textarea id="memo-input" placeholder="メモを入力..."></textarea>
+                </div>
+
+                <div class="action-area">
+                    <button id="submit-btn" class="submit-btn">記録する</button>
+                    <button id="cancel-btn" class="cancel-btn" style="display:none;">
+                        <span class="material-symbols-outlined icon-sm">cancel</span> 修正を破棄
+                    </button>
+                </div>
+            </section>
+
+            <section class="data-manager">
+                <div class="menu-trigger-card">
+                    <div class="menu-title-group">
+                        <span class="material-symbols-outlined icon-md">person</span>
+                        <span class="menu-title-ja">マイログ</span>
+                    </div>
+                    <span id="history-arrow" class="material-symbols-outlined arrow-icon">expand_circle_down</span>
+                </div>
+                
+                <div id="history-container-wrapper" class="history-wrapper" style="display:none;">
+                    <div id="history-log-container">
+                        <div id="history-log"></div>
+                    </div>
+                </div>
+
+                <div class="menu-trigger-card shared-trigger">
+                    <div class="menu-title-group">
+                        <span class="material-symbols-outlined icon-md">group</span>
+                        <span class="menu-title-ja">みんなのログ</span>
+                    </div>
+                    <span class="material-symbols-outlined arrow-icon">open_in_new</span>
+                </div>
+            </section>
+
+        </main>
+
+        <div id="shared-db-modal" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="modal-title-group">
+                        <span class="material-symbols-outlined icon-md">group</span>
+                        <h2>みんなのログ</h2>
+                    </div>
+                    <div class="modal-header-actions">
+                        <button class="header-icon-btn refresh-btn">
+                            <span class="material-symbols-outlined">refresh</span>
+                        </button>
+                        <button class="header-icon-btn modal-close-btn">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="tab-group">
+                    <button class="tab-btn active">運営状況</button>
+                    <button class="tab-btn">搭乗ログ</button>
+                </div>
+
+                <div id="shared-content-area" class="shared-list">
+                    <p class="loading-text">読み込み中...</p>
+                </div>
+            </div>
+        </div>
+
+        <footer class="app-footer">
+            <p>TOT Logger v4.5.0</p>
+            <p>Created by Tamas (@tamagineer)</p>
+            <p class="disclaimer">This is an unofficial fan tool.</p>
+        </footer>
+    </div>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
