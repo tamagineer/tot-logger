@@ -220,17 +220,22 @@ export const UIManager = {
                                 </span>
                                 ${profileHtml}
                             </div>
-
                         </div>
+
                         ${isMine ? `
-                            <div class="log-actions">
-                                <button class="icon-btn" onclick="window.editLog('${log.id}')">
-                                    <span class="material-symbols-outlined icon-sm">edit</span>
-                                </button>
-                                <button class="icon-btn" onclick="window.deleteLog('${log.id}')">
-                                    <span class="material-symbols-outlined icon-sm">delete</span>
-                                </button>
-                            </div>` : ''}
+                            <details class="action-menu">
+                                <summary class="icon-btn-more">
+                                    <span class="material-symbols-outlined">more_vert</span>
+                                </summary>
+                                <div class="menu-dropdown">
+                                    <button onclick="window.editLog('${log.id}')">
+                                        <span class="material-symbols-outlined">edit</span> 修正
+                                    </button>
+                                    <button onclick="window.deleteLog('${log.id}')" class="menu-delete">
+                                        <span class="material-symbols-outlined">delete</span> 削除
+                                    </button>
+                                </div>
+                            </details>` : ''}
                     </div>
                     ${log.memo ? `<div class="log-memo-row">${log.memo}</div>` : ''}
                 </div>`;
