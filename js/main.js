@@ -8,12 +8,16 @@ import { UIManager } from "./ui.js";
 import { loginApp, logoutApp } from "./auth.js";
 import { 
     initFirestoreListener, saveToFirestore, deleteLog, 
-    shareDailyReport, loadSharedReports, renderSharedContent 
+    shareDailyReport, loadSharedReports, renderSharedContent,
+    fetchSpecialSchedules // Phase 3 Added
 } from "./db.js";
 
 // === 初期化とイベントバインディング ===
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     UIManager.init();
+
+    // アプリ起動時にFirestoreから設定を読み込む
+    await fetchSpecialSchedules();
     
     // Auth State Listener
     onAuthStateChanged(auth, (user) => {
@@ -266,7 +270,6 @@ function switchSharedTab(tabName) {
 }
 
 // === Global Expose for Dynamic HTML (backward compatibility) ===
-// これらは動的に生成されるHTML（履歴リストなど）内のonclickから呼ばれるためwindowに登録
 window.editLog = (id) => {
     if (!confirm(CONSTANTS.MESSAGES.confirmEdit)) return;
 
@@ -290,7 +293,7 @@ window.deleteLog = deleteLog;
 window.shareDailyReport = shareDailyReport;
 window.closeSharedDbModal = closeSharedDbModal;
 
-// Vehicle Click Handler (UIから呼ばれるがロジックを含むためここに配置)
+// Vehicle Click Handler
 window.handleVehicleClick = (num, isCaution, currentRoomKey, assigned, assignments) => {
     if (State.input.vehicle == num) {
         State.input.vehicle = null; 

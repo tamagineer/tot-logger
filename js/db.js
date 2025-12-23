@@ -1,6 +1,6 @@
 // js/db.js
 import { 
-    collection, addDoc, updateDoc, deleteDoc, setDoc, getDocs,
+    collection, addDoc, updateDoc, deleteDoc, setDoc, getDocs, getDoc,
     doc, onSnapshot, query, orderBy, serverTimestamp, limit 
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { db } from "./firebase.js";
@@ -9,8 +9,28 @@ import { CONSTANTS } from "./config.js";
 import { Logic } from "./logic.js";
 import { UIManager } from "./ui.js";
 
-// 他モジュールから呼び出すヘルパー：UIのリセットや入力解除
+// 他モジュールから呼び出すヘルパー
 import { deactivateTimeInput, resetInput } from "./main.js";
+
+// === Config Loader (Phase 3 Added) ===
+export async function fetchSpecialSchedules() {
+    try {
+        const docRef = doc(db, "config", "schedules");
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.special_programs) {
+                State.specialSchedules = data.special_programs;
+                console.log("Schedules loaded:", State.specialSchedules);
+            }
+        } else {
+            console.log("No config/schedules document found. Using default fallback.");
+        }
+    } catch (e) {
+        console.error("Config load error:", e);
+    }
+}
 
 // === Firestore Listeners ===
 export function initFirestoreListener() {
@@ -80,7 +100,8 @@ export async function saveToFirestore() {
             if (!confirm(CONSTANTS.MESSAGES.specialOffCaution)) return;
         }
 
-        const hasDef = CONSTANTS.SPECIAL_SCHEDULES.some(def => def.year === year);
+        // Firestoreの定義を確認し、なければデフォルト(1-3月)で警告
+        const hasDef = State.specialSchedules.some(def => def.year === year);
         if (!hasDef && month <= 2 && !isSpecialMode) {
             if (!confirm(CONSTANTS.MESSAGES.janMarCaution)) return;
         }
@@ -199,8 +220,6 @@ export const loadSharedReports = async () => {
     }
 };
 
-// 共有ログの描画 (UIロジックだがDBデータに強く依存するためここに配置、またはUIへ移動も可)
-// 今回はUI.jsに移動せず、既存ロジックの依存関係を整理してここに記述
 export function renderSharedContent() {
     const contentArea = document.getElementById('shared-content-area');
     const reports = State.sharedReports;

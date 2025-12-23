@@ -2,6 +2,10 @@
 export const State = {
     user: null,
     logs: [],
+    
+    // Firestoreから取得したスケジュールを保持する配列
+    specialSchedules: [], 
+    
     input: { 
         count: 1, floor: null, tour: null, vehicle: null, 
         profile: null, suspendedTours: [], memo: '' 

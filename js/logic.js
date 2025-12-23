@@ -22,12 +22,18 @@ export const Logic = {
         if (!dateStr) return false;
         const d = new Date(dateStr);
         const y = d.getFullYear();
-        const def = CONSTANTS.SPECIAL_SCHEDULES.find(s => s.year === y);
+        
+        // Firestoreから読み込んだスケジュールを使用
+        const schedules = State.specialSchedules || [];
+        
+        const def = schedules.find(s => s.year === y);
         if (def) {
             const startStr = `${y}-${def.start}`;
             const endStr = `${y}-${def.end}`;
             return (dateStr >= startStr && dateStr <= endStr);
         }
+        
+        // フォールバック（定義がない年は1月〜3月をデフォルトとする）
         const m = d.getMonth();
         return (m >= 0 && m <= 2); 
     },

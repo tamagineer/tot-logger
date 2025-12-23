@@ -1,6 +1,6 @@
 // js/config.js
 export const CONSTANTS = {
-    APP_VERSION: "v4.5.0 (Refactored)",
+    APP_VERSION: "v4.6.0 (Dynamic Config)",
     ROOMS: {
         'A-1': 'A-1F (絵画)', 'A-2': 'A-2F (古代の武器)',
         'B-1': 'B-1F (鎧)',   'B-2': 'B-2F (建築工芸品)',
@@ -10,11 +10,6 @@ export const CONSTANTS = {
         'TOWER 1': '通常版', 'TOWER 2': 'Level 13',
         'TOWER 3': 'シャドウ', 'UNKNOWN': '不明'
     },
-    // スペシャルプログラム期間定義 (Phase 2でFirestore化予定)
-    SPECIAL_SCHEDULES: [
-        { year: 2024, start: '01-09', end: '04-08' },
-        { year: 2025, start: '01-15', end: '03-16' }
-    ],
     MESSAGES: {
         loginRequired: "【エラー】\n記録するにはログインが必要です。",
         confirmDelete: "【確認】\nこの記録を削除しますか？",
