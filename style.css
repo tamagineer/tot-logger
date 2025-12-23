@@ -440,3 +440,125 @@ details.current-date-row > summary {
 details.current-date-row > summary > .arrow-icon-left {
     margin-left: -3px; /* ボーダー追加分だけアイコン位置調整 */
 }
+
+/* === ドロップダウンメニュー (More Vert) === */
+.action-menu {
+    position: relative;
+    display: inline-block;
+}
+.icon-btn-more {
+    list-style: none; /* 三角マーカーを消す */
+    cursor: pointer;
+    padding: 4px;
+    color: #888;
+    display: flex;
+    align-items: center;
+}
+.icon-btn-more:hover { color: #fff; }
+.icon-btn-more::-webkit-details-marker { display: none; } /* Safari用 */
+
+.menu-dropdown {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    background: #222;
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 4px 0;
+    z-index: 100;
+    width: 100px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+.menu-dropdown button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 12px;
+    background: none;
+    border: none;
+    color: #eee;
+    font-size: 0.9rem;
+    text-align: left;
+    cursor: pointer;
+}
+.menu-dropdown button:hover { background: #333; }
+.menu-dropdown button .material-symbols-outlined { font-size: 1.1rem; }
+.menu-dropdown button.menu-delete { color: #ff6b6b; }
+
+/* === 共有ログリストのレイアウト調整 === */
+.shared-log-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* 左右に配置 */
+    border-bottom: 1px solid #222;
+    padding: 8px 0;
+    font-size: 0.9rem;
+}
+.sl-left-group {
+    display: flex;
+    flex-direction: column; /* 日時と内容を縦に積む */
+    gap: 2px;
+}
+.sl-datetime {
+    display: flex;
+    gap: 8px;
+    font-size: 0.75rem;
+    color: #888;
+}
+.sl-right-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* === スマホ向けレスポンシブ対応 (幅600px以下) === */
+@media (max-width: 600px) {
+    /* --- 運営状況リスト --- */
+    
+    /* 年を非表示 (2025/ -> 非表示) */
+    .year-part { display: none; }
+    
+    /* 日付列の幅を縮める */
+    .shared-status-table td.fixed-col-date,
+    .shared-status-table th.fixed-col-date {
+        width: 50px; 
+        font-size: 0.8rem;
+    }
+    
+    /* 「F」を非表示 */
+    .floor-suffix { display: none; }
+    
+    /* セルのパディングを極限まで詰める */
+    .shared-status-table th, 
+    .shared-status-table td {
+        padding: 6px 2px; /* 左右2px */
+        font-size: 0.85rem;
+    }
+    
+    /* 投稿者名を非表示（アイコンのみにする） */
+    .author-name-text,
+    .sl-author-name {
+        display: none;
+    }
+    
+    /* 投稿者列の幅を縮める */
+    .shared-status-table th.col-author,
+    .shared-status-table td.col-author {
+        min-width: auto;
+        width: 40px;
+        padding: 4px;
+    }
+    .author-info { justify-content: center; }
+    
+    /* --- 搭乗ログ --- */
+    .log-info-group {
+        flex-direction: column; /* スマホでは縦積みに */
+        align-items: flex-start;
+        gap: 2px;
+    }
+    .log-time { margin-left: 0; }
+    
+    /* マイログのアクションボタンも隠し、MoreVertのみにする */
+    /* (JSで切り替えているためCSSでの制御は不要だが、レイアウト調整) */
+}
