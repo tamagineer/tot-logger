@@ -242,8 +242,8 @@ function renderStatusTab(reports, container) {
         <thead>
             <tr>
                 <th rowspan="2" class="fixed-col-date">日付</th>
-                <th rowspan="2" class="fixed-col-author">投稿者</th>
                 <th colspan="2">TOUR A</th><th colspan="2">TOUR B</th><th colspan="2">TOUR C</th>
+                <th rowspan="2" class="col-author">投稿者</th>
             </tr>
             <tr><th>1F</th><th>2F</th><th>1F</th><th>2F</th><th>1F</th><th>2F</th></tr>
         </thead>
@@ -254,6 +254,7 @@ function renderStatusTab(reports, container) {
         const suspended = r.suspended || [];
         const dateStr = r.date.replace(/-/g, '/'); 
         const iconUrl = r.author.photoURL || ''; 
+        // アイコン画像タグ生成
         const iconTag = iconUrl ? `<img src="${iconUrl}" class="author-icon-mini">` : '';
         
         const getCells = (tour) => {
@@ -268,8 +269,13 @@ function renderStatusTab(reports, container) {
         html += `
         <tr>
             <td class="fixed-col-date">${dateStr}</td>
-            <td class="fixed-col-author"><div class="author-info">${iconTag}<div class="author-name-text">${r.author.name}</div></div></td>
             ${getCells('A')}${getCells('B')}${getCells('C')}
+            <td class="col-author">
+                <div class="author-info">
+                    ${iconTag}
+                    <span class="author-name-text">${r.author.name}</span>
+                </div>
+            </td>
         </tr>`;
     });
     html += `</tbody></table></div>`;

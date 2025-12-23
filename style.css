@@ -73,13 +73,6 @@ h1 {
 .user-settings-area.logged-in {
     background: transparent; border: none; padding: 0 10px; justify-content: space-between;
 }
-/* 未ログイン時はボタンとして機能させるためのスタイル */
-.user-settings-area.guest-clickable {
-    background: #222; border: 1px solid #444; cursor: pointer; padding: 20px;
-}
-.user-settings-area.guest-clickable:hover {
-    background: #333; border-color: #666;
-}
 
 #login-container { width: 100%; }
 
@@ -287,7 +280,10 @@ details[open] summary .arrow-icon-left { transform: rotate(90deg); color: #fff; 
 .shared-status-table th, .shared-status-table td { border: 1px solid #333; padding: 8px 4px; text-align: center; color: #eee; white-space: nowrap; }
 .shared-status-table th { background: #222; color: #aaa; }
 .shared-status-table td.fixed-col-date { position: sticky; left: 0; background: #151515; z-index: 2; font-weight: bold; color: #fff; border-right: 1px solid #444; width: 90px; }
-.td-suspended { color: #f55; font-weight: bold; font-size: 1.2rem; }
+.shared-status-table td.td-suspended {
+    color: #ff5555;
+    font-weight: bold;
+}
 
 /* === 共有: ログリスト === */
 .shared-log-item { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #222; padding: 10px 0; font-size: 0.9rem; }
@@ -303,3 +299,46 @@ details[open] summary .arrow-icon-left { transform: rotate(90deg); color: #fff; 
 .sl-btn:hover { background: #333; color: #fff; }
 
 .app-footer { margin-top: 50px; padding: 20px 0; border-top: 1px solid #222; font-size: 0.75rem; color: #555; line-height: 1.6; }
+
+/* === 運営状況: 投稿者列のスタイル === */
+
+/* 列全体の幅と配置 */
+.shared-status-table th.col-author,
+.shared-status-table td.col-author {
+    min-width: 140px;      /* 名前が見切れないように幅を確保 */
+    text-align: left;      /* 左寄せ */
+    padding: 8px 12px;
+}
+
+/* ヘッダーの背景色（他のヘッダーに合わせる） */
+.shared-status-table th.col-author {
+    background: #222;
+    color: #aaa;
+}
+
+/* 投稿者情報のラッパー（横並びにする） */
+.author-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;              /* アイコンと名前の間隔 */
+    justify-content: flex-start;
+}
+
+/* プロフィール画像（円形・小サイズ） */
+.author-icon-mini {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;    /* 完全な円形 */
+    object-fit: cover;     /* 画像の歪みを防ぐ */
+    border: 1px solid #444;
+    flex-shrink: 0;        /* 縮小されないように固定 */
+}
+
+/* 名前テキスト */
+.author-name-text {
+    font-size: 0.85rem;
+    color: #ccc;
+    white-space: nowrap;   /* 改行禁止 */
+    overflow: hidden;
+    text-overflow: ellipsis; /* 長すぎる場合は...で省略 */
+}
