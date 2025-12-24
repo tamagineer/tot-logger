@@ -19,8 +19,10 @@ export const UIManager = {
             submitBtn: document.getElementById('submit-btn'), 
             cancelBtn: document.getElementById('cancel-btn'),
             
-            timeAddBtn: document.getElementById('time-add-btn'),
-            timeInputWrapper: document.getElementById('time-input-wrapper'),
+            // 【削除】不採用となった旧時刻UI用のID参照を削除
+            // timeAddBtn: document.getElementById('time-add-btn'),
+            // timeInputWrapper: document.getElementById('time-input-wrapper'),
+            
             historyTrigger: document.querySelector('.menu-trigger-card'),
             historyWrapper: document.getElementById('history-container-wrapper')
         };
@@ -74,14 +76,12 @@ export const UIManager = {
             if(btn) {
                 btn.classList.toggle('selected', s.tour === tour);
                 
-                // 【変更】運営休止ツアーの場合のスタイル適用
+                // 運営休止ツアーの場合のスタイル適用
                 if (s.suspendedTours.includes(tour)) {
                     btn.classList.add('btn-suspended-view');
-                    btn.classList.remove('btn-caution'); // 点線スタイル優先
+                    btn.classList.remove('btn-caution'); 
                 } else {
                     btn.classList.remove('btn-suspended-view');
-                    // 以前のロジック（caution）は維持するか要検討だが、
-                    // シンプルに「選択中の矛盾」などはbtn-cautionで表現
                     if (dailyState.suspended[tour]) btn.classList.add('btn-caution');
                     else btn.classList.remove('btn-caution');
                 }
@@ -181,11 +181,9 @@ export const UIManager = {
             const publishLabel = isPublished ? '公開中' : '非公開';
             const highlightClass = (date === selectedDate) ? 'current-date-row' : '';
             
-            // 【変更】State.openHistoryDates に含まれている場合は open 属性を付与
             const isOpen = State.openHistoryDates.has(date);
             const openAttr = isOpen ? 'open' : '';
 
-            // data-date属性を追加して識別可能にする
             html += `<details class="${highlightClass}" ${openAttr} data-date="${date}">
                 <summary>
                     <span class="material-symbols-outlined arrow-icon-left">chevron_right</span>
@@ -231,22 +229,17 @@ export const UIManager = {
                                 </span>
                                 ${profileHtml}
                             </div>
-                        </div>
 
+                        </div>
                         ${isMine ? `
-                            <details class="action-menu">
-                                <summary class="icon-btn-more">
-                                    <span class="material-symbols-outlined">more_vert</span>
-                                </summary>
-                                <div class="menu-dropdown">
-                                    <button onclick="window.editLog('${log.id}')">
-                                        <span class="material-symbols-outlined">edit</span> 修正
-                                    </button>
-                                    <button onclick="window.deleteLog('${log.id}')" class="menu-delete">
-                                        <span class="material-symbols-outlined">delete</span> 削除
-                                    </button>
-                                </div>
-                            </details>` : ''}
+                            <div class="log-actions">
+                                <button class="icon-btn" onclick="window.editLog('${log.id}')">
+                                    <span class="material-symbols-outlined icon-sm">edit</span>
+                                </button>
+                                <button class="icon-btn" onclick="window.deleteLog('${log.id}')">
+                                    <span class="material-symbols-outlined icon-sm">delete</span>
+                                </button>
+                            </div>` : ''}
                     </div>
                     ${log.memo ? `<div class="log-memo-row">${log.memo}</div>` : ''}
                 </div>`;
@@ -255,7 +248,6 @@ export const UIManager = {
         });
         div.innerHTML = html;
 
-        // 【追加】手動での開閉イベントを監視してStateを更新
         div.querySelectorAll('details').forEach(el => {
             el.addEventListener('toggle', () => {
                 const date = el.dataset.date;
@@ -265,7 +257,6 @@ export const UIManager = {
         });
     },
 
-    // === 【追加】トースト通知を表示 ===
     showToast(message, type = 'normal') {
         const existing = document.querySelector('.toast');
         if (existing) existing.remove();
@@ -291,7 +282,6 @@ export const UIManager = {
         }, 3000);
     },
 
-    // === 【追加】カスタム確認モーダル（非同期で待機） ===
     async showConfirmModal(message) {
         return new Promise((resolve) => {
             const modal = document.getElementById('custom-confirm-modal');
@@ -300,7 +290,6 @@ export const UIManager = {
             const cancelBtn = document.getElementById('confirm-cancel-btn');
 
             if (!modal || !msgEl || !okBtn || !cancelBtn) {
-                // DOM要素が見つからない場合のフォールバック
                 resolve(confirm(message));
                 return;
             }

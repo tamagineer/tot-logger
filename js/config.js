@@ -1,7 +1,7 @@
 // js/config.js
 export const CONSTANTS = {
-    // 【変更】バージョンを更新（キャッシュ対策のためHTMLのパラメータと一致させる）
-    APP_VERSION: "v4.11.4 (Cache Busting)",
+    // 【変更】バージョン更新 (Code Cleaned & CSS Cache Busting)
+    APP_VERSION: "v4.11.5 (Cleaned)",
     ROOMS: {
         'A-1': 'A-1F (絵画)', 'A-2': 'A-2F (古代の武器)',
         'B-1': 'B-1F (鎧)',   'B-2': 'B-2F (建築工芸品)',

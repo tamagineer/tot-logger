@@ -53,7 +53,7 @@ h1 {
 .btn-caution { border-style: dashed !important; color: #666 !important; }
 .btn-caution.selected { background-color: #ccc !important; color: #000 !important; border-style: solid !important; }
 
-/* 【追加】運営休止中のツアー選択ボタン用スタイル（点線枠＋薄字） */
+/* 運営休止中のツアー選択ボタン用スタイル（点線枠＋薄字） */
 .btn-suspended-view {
     border-style: dotted !important;
     border-color: #555 !important;
@@ -62,8 +62,6 @@ h1 {
 .btn-suspended-view:hover {
     color: #888 !important;
 }
-/* 選択時は通常のselectedスタイルが優先されるようにするが、
-   運営休止かつ選択中という矛盾状態の場合は警告色を混ぜる */
 .btn-suspended-view.selected {
     background-color: #444 !important;
     color: #aaa !important;
@@ -103,7 +101,7 @@ h1 {
 #user-name { font-weight: bold; font-size: 1rem; color: #fff; }
 #user-screen-name { font-size: 0.8rem; color: #888; }
 
-/* ログアウトボタン (アイコン発光のみ) */
+/* ログアウトボタン */
 .logout-icon-btn {
     background: transparent; border: none; color: #666;
     width: 44px; height: 44px; border-radius: 50%;
@@ -125,7 +123,7 @@ h1 {
 .counter-display { font-size: 2.2rem; font-weight: 700; min-width: 80px; color: #fff; }
 .unit { font-size: 1rem; color: #888; font-weight: normal; margin-left: 5px; }
 
-/* === 時刻入力 (A案: スマート・ピル型・幅拡張版) === */
+/* === 時刻入力ウィジェット === */
 .time-section-fixed {
     display: flex; justify-content: center; align-items: center;
     height: 44px; margin-top: 10px;
@@ -284,7 +282,7 @@ details.current-date-row > summary { background-color: #222; border-left: 3px so
 details.current-date-row > summary > .arrow-icon-left { margin-left: -3px; }
 
 /* =========================================
-   6. 【追加】トースト & カスタムモーダル
+   6. トースト & カスタムモーダル
    ========================================= */
 
 /* トースト通知 */
