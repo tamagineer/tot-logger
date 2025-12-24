@@ -394,7 +394,6 @@ function renderLogsTab(reports, container) {
             ? CONSTANTS.PROFILES[l.profile] : '';
         const profileHtml = profileName ? `<span class="text-profile">(${profileName})</span>` : '';
 
-        // 【注意】onclick="window.closeSharedDbModal()" は main.js で定義された関数を呼びます
         html += `
         <div class="shared-log-item">
             <span class="sl-date">${dateStr}</span>
@@ -426,3 +425,7 @@ function renderLogsTab(reports, container) {
     html += `</div>`;
     container.innerHTML = html;
 }
+
+// 【追加】DB関連のグローバル関数をここで定義
+window.deleteLog = deleteLog;
+window.shareDailyReport = shareDailyReport;

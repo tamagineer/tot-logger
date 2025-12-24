@@ -22,7 +22,6 @@ export const UIManager = {
             historyTrigger: document.querySelector('.menu-trigger-card'),
             historyWrapper: document.getElementById('history-container-wrapper'),
             
-            // 共有DBモーダル用
             sharedModal: document.getElementById('shared-db-modal'),
             sharedTabs: document.querySelectorAll('.tab-btn')
         };
@@ -48,7 +47,6 @@ export const UIManager = {
         }
     },
 
-    // === 時刻入力関連 ===
     activateTimeInput() {
         State.isTimeInputVisible = true;
         const currentVal = document.getElementById('visit-time').value;
@@ -90,7 +88,7 @@ export const UIManager = {
         }
     },
 
-    // === モーダル・タブUI制御 (New) ===
+    // === モーダル・タブUI制御 ===
     openSharedModal() {
         if(this.els.sharedModal) this.els.sharedModal.classList.add('active');
     },
@@ -200,6 +198,7 @@ export const UIManager = {
             if (State.input.vehicle == i || (i === 9 && State.input.vehicle >= 9)) btn.classList.add('selected');
 
             btn.addEventListener('click', () => {
+                // handleVehicleClick は window オブジェクト経由で呼ぶ
                 if(window.handleVehicleClick) {
                     window.handleVehicleClick(i, isCaution, currentKey, assignedInRoom, dailyState.assignments);
                 }
@@ -430,3 +429,70 @@ function generateDailySummaryHTML(logs, dateStr) {
         </table>
     </div>`;
 }
+
+// 【追加】UI関連のグローバル関数をここで定義
+window.closeSharedDbModal = () => {
+    UIManager.closeSharedModal();
+};
+
+window.handleVehicleClick = async (num, isCaution, currentRoomKey, assigned, assignments) => {
+    if (State.input.vehicle == num) {
+        State.input.vehicle = null; 
+        UIManager.updateAll();
+        return;
+    }
+    if (State.editingId === null && isCaution) {
+        if (num === 7) {
+            if(!await UIManager.showConfirmModal(CONSTANTS.MESSAGES.vehicle7Caution)) return;
+        } else if (assigned && assigned != num) {
+            if(!await UIManager.showConfirmModal(`この部屋は No.${assigned} で記録済みです。\nNo.${num} に上書きしますか？`)) return;
+        } else {
+            if(!await UIManager.showConfirmModal(`機体 No.${num} は他の部屋で記録済みです。\n移動したとみなして記録しますか？`)) return;
+        }
+    }
+    
+    let inputNum = num;
+    if (num === 9) {
+        const val = prompt("機体番号を入力 (9以降):");
+        if (!val) return;
+        inputNum = val;
+    }
+    State.input.vehicle = inputNum;
+    UIManager.updateAll();
+};
+
+// 【追加】editLogもUI操作が主なのでここに移動
+window.editLog = async (id, fromShared = false) => {
+    const log = State.logs.find(l => l.id === id); 
+    if (!log) {
+        UIManager.showToast("【エラー】この記録の元データが見つかりません", 'error');
+        return;
+    }
+
+    const isPublished = State.publishedDates.has(log.date);
+    
+    let confirmMsg;
+    if (fromShared) {
+        confirmMsg = CONSTANTS.MESSAGES.confirmEditFromShared;
+    } else {
+        confirmMsg = isPublished
+            ? CONSTANTS.MESSAGES.confirmEditPublished
+            : CONSTANTS.MESSAGES.confirmEdit;
+    }
+
+    if (!await UIManager.showConfirmModal(confirmMsg)) return;
+
+    State.editingId = id; 
+    State.input = { ...log, suspendedTours: log.suspended || [] };
+    
+    document.getElementById('visit-date').value = log.date;
+    
+    if(log.time) { 
+        document.getElementById('visit-time').value = log.time;
+        UIManager.activateTimeInput();
+    } else {
+        UIManager.deactivateTimeInput();
+    }
+    UIManager.updateAll();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+};
