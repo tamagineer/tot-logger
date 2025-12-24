@@ -425,7 +425,3 @@ function renderLogsTab(reports, container) {
     html += `</div>`;
     container.innerHTML = html;
 }
-
-// 【追加】DB関連のグローバル関数をここで定義
-window.deleteLog = deleteLog;
-window.shareDailyReport = shareDailyReport;

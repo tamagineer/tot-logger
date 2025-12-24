@@ -12,7 +12,7 @@ import {
     fetchSpecialSchedules, initPublishedStatusListener, togglePublish 
 } from "./db.js";
 
-// === ローカル関数定義 (windowへの登録は後で行う) ===
+// === ローカル関数定義 (windowへの登録は init 内で行う) ===
 
 const handleEditLog = async (id, fromShared = false) => {
     const log = State.logs.find(l => l.id === id); 
@@ -86,6 +86,136 @@ const handlePublishToggle = async (dateStr, checkbox) => {
         return;
     }
     togglePublish(dateStr, isTurningOn);
+};
+
+// UI と DB 操作を結合する関数
+const switchSharedTab = (tabName) => {
+    State.currentSharedTab = tabName;
+    UIManager.updateSharedTabUI(tabName);
+    renderSharedContent();
+};
+
+// === Functions used by Logic / Events ===
+
+const handleDateChange = async () => {
+    const dateVal = document.getElementById('visit-date').value;
+    if (Logic.isSpecialPeriod(dateVal)) {
+        document.getElementById('special-mode-check').checked = true;
+    } else {
+        document.getElementById('special-mode-check').checked = false;
+    }
+    if (await UIManager.showConfirmModal(CONSTANTS.MESSAGES.confirmReset)) {
+        UIManager.resetInput(true); 
+    }
+};
+
+const updateCount = (d) => {
+    State.input.count = Math.max(1, State.input.count + d);
+    UIManager.updateAll();
+};
+
+const selectFloor = (v) => {
+    State.input.floor = (State.input.floor === v) ? null : v;
+    UIManager.updateAll();
+};
+
+const selectTour = async (val) => {
+    const dailyState = Logic.calculateDailyState(UIManager.els.date.value);
+    
+    if (State.editingId === null && State.input.tour !== val) {
+        if (State.input.suspendedTours.includes(val)) {
+            if (!await UIManager.showConfirmModal(`Tour ${val} の休止設定を解除して、\n搭乗ツアーとして選択しますか？`)) return;
+            const idx = State.input.suspendedTours.indexOf(val);
+            if (idx > -1) State.input.suspendedTours.splice(idx, 1);
+        }
+        else if (dailyState.suspended[val]) {
+            if (!await UIManager.showConfirmModal(`Tour ${val} は「運営休止」と記録されています。\n運転再開として記録しますか？`)) return;
+            const idx = State.input.suspendedTours.indexOf(val);
+            if (idx > -1) State.input.suspendedTours.splice(idx, 1);
+        }
+    }
+    
+    State.input.tour = (State.input.tour === val) ? null : val; 
+    
+    if (State.input.tour) {
+        const isSpecial = document.getElementById('special-mode-check').checked;
+        const histProfile = dailyState.shaftHistory[State.input.tour];
+        if (histProfile && histProfile !== 'UNKNOWN') {
+            State.input.profile = histProfile;
+        } else {
+            State.input.profile = isSpecial ? 'UNKNOWN' : 'TOWER 1';
+        }
+    }
+    UIManager.updateAll();
+};
+
+const selectProfile = async (val) => {
+    if (State.editingId === null && State.input.tour) {
+        const dailyState = Logic.calculateDailyState(UIManager.els.date.value);
+        const established = dailyState.shaftHistory[State.input.tour];
+        if (established && established !== 'UNKNOWN' && established !== val) {
+            const oldN = CONSTANTS.PROFILES[established];
+            const newN = CONSTANTS.PROFILES[val];
+            if (!await UIManager.showConfirmModal(`Tour ${State.input.tour} は「${oldN}」として記録済みです。\n「${newN}」に変更しますか？`)) return;
+        }
+    }
+    State.input.profile = val; 
+    UIManager.updateAll();
+};
+
+const toggleSuspend = async (tourName) => {
+    const s = State.input; 
+    const index = s.suspendedTours.indexOf(tourName);
+
+    if (index === -1) {
+        if (s.tour === tourName) {
+            if (!await UIManager.showConfirmModal(`現在選択中の Tour ${tourName} を\n運営休止にしますか？`)) return;
+        }
+        
+        if(await UIManager.showConfirmModal(`Tour ${tourName} を運営休止にしますか？`)) s.suspendedTours.push(tourName);
+    } else {
+        s.suspendedTours.splice(index, 1);
+    }
+    UIManager.updateAll();
+};
+
+const toggleTimeWidget = (e) => {
+    UIManager.activateTimeInput();
+};
+
+const clearTimeWidget = (e) => {
+    e.stopPropagation();
+    UIManager.deactivateTimeInput();
+};
+
+const handleModeChange = async () => {
+    const isON = document.getElementById('special-mode-check').checked;
+    if (isON) {
+        const dateVal = document.getElementById('visit-date').value;
+        if (!Logic.isSpecialPeriod(dateVal)) {
+            if (!await UIManager.showConfirmModal(CONSTANTS.MESSAGES.specialOnCaution)) {
+                document.getElementById('special-mode-check').checked = false;
+            }
+        }
+    }
+    UIManager.updateAll();
+};
+
+const cancelEdit = () => {
+    State.scrollToId = State.editingId; 
+    UIManager.resetInput(false);
+};
+
+const toggleHistorySection = () => {
+    const wrapper = document.getElementById('history-container-wrapper');
+    const trigger = document.querySelector('.menu-trigger-card');
+    if (wrapper.style.display === 'none') {
+        wrapper.style.display = 'block';
+        trigger.classList.add('open');
+    } else {
+        wrapper.style.display = 'none';
+        trigger.classList.remove('open');
+    }
 };
 
 // === 初期化とイベントバインディング ===
@@ -217,132 +347,3 @@ document.addEventListener('DOMContentLoaded', async () => {
     tabs[0].addEventListener('click', () => switchSharedTab('status'));
     tabs[1].addEventListener('click', () => switchSharedTab('logs'));
 });
-
-// === Functions used by Logic / Events ===
-
-async function handleDateChange() {
-    const dateVal = document.getElementById('visit-date').value;
-    if (Logic.isSpecialPeriod(dateVal)) {
-        document.getElementById('special-mode-check').checked = true;
-    } else {
-        document.getElementById('special-mode-check').checked = false;
-    }
-    if (await UIManager.showConfirmModal(CONSTANTS.MESSAGES.confirmReset)) {
-        UIManager.resetInput(true); 
-    }
-}
-
-function updateCount(d) {
-    State.input.count = Math.max(1, State.input.count + d);
-    UIManager.updateAll();
-}
-
-function selectFloor(v) {
-    State.input.floor = (State.input.floor === v) ? null : v;
-    UIManager.updateAll();
-}
-
-async function selectTour(val) {
-    const dailyState = Logic.calculateDailyState(UIManager.els.date.value);
-    
-    if (State.editingId === null && State.input.tour !== val) {
-        if (State.input.suspendedTours.includes(val)) {
-            if (!await UIManager.showConfirmModal(`Tour ${val} の休止設定を解除して、\n搭乗ツアーとして選択しますか？`)) return;
-            const idx = State.input.suspendedTours.indexOf(val);
-            if (idx > -1) State.input.suspendedTours.splice(idx, 1);
-        }
-        else if (dailyState.suspended[val]) {
-            if (!await UIManager.showConfirmModal(`Tour ${val} は「運営休止」と記録されています。\n運転再開として記録しますか？`)) return;
-            const idx = State.input.suspendedTours.indexOf(val);
-            if (idx > -1) State.input.suspendedTours.splice(idx, 1);
-        }
-    }
-    
-    State.input.tour = (State.input.tour === val) ? null : val; 
-    
-    if (State.input.tour) {
-        const isSpecial = document.getElementById('special-mode-check').checked;
-        const histProfile = dailyState.shaftHistory[State.input.tour];
-        if (histProfile && histProfile !== 'UNKNOWN') {
-            State.input.profile = histProfile;
-        } else {
-            State.input.profile = isSpecial ? 'UNKNOWN' : 'TOWER 1';
-        }
-    }
-    UIManager.updateAll();
-}
-
-async function selectProfile(val) {
-    if (State.editingId === null && State.input.tour) {
-        const dailyState = Logic.calculateDailyState(UIManager.els.date.value);
-        const established = dailyState.shaftHistory[State.input.tour];
-        if (established && established !== 'UNKNOWN' && established !== val) {
-            const oldN = CONSTANTS.PROFILES[established];
-            const newN = CONSTANTS.PROFILES[val];
-            if (!await UIManager.showConfirmModal(`Tour ${State.input.tour} は「${oldN}」として記録済みです。\n「${newN}」に変更しますか？`)) return;
-        }
-    }
-    State.input.profile = val; 
-    UIManager.updateAll();
-}
-
-async function toggleSuspend(tourName) {
-    const s = State.input; 
-    const index = s.suspendedTours.indexOf(tourName);
-
-    if (index === -1) {
-        if (s.tour === tourName) {
-            if (!await UIManager.showConfirmModal(`現在選択中の Tour ${tourName} を\n運営休止にしますか？`)) return;
-        }
-        
-        if(await UIManager.showConfirmModal(`Tour ${tourName} を運営休止にしますか？`)) s.suspendedTours.push(tourName);
-    } else {
-        s.suspendedTours.splice(index, 1);
-    }
-    UIManager.updateAll();
-}
-
-function toggleTimeWidget(e) {
-    UIManager.activateTimeInput();
-}
-function clearTimeWidget(e) {
-    e.stopPropagation();
-    UIManager.deactivateTimeInput();
-}
-
-async function handleModeChange() {
-    const isON = document.getElementById('special-mode-check').checked;
-    if (isON) {
-        const dateVal = document.getElementById('visit-date').value;
-        if (!Logic.isSpecialPeriod(dateVal)) {
-            if (!await UIManager.showConfirmModal(CONSTANTS.MESSAGES.specialOnCaution)) {
-                document.getElementById('special-mode-check').checked = false;
-            }
-        }
-    }
-    UIManager.updateAll();
-}
-
-function cancelEdit() {
-    State.scrollToId = State.editingId; 
-    UIManager.resetInput(false);
-}
-
-function toggleHistorySection() {
-    const wrapper = document.getElementById('history-container-wrapper');
-    const trigger = document.querySelector('.menu-trigger-card');
-    if (wrapper.style.display === 'none') {
-        wrapper.style.display = 'block';
-        trigger.classList.add('open');
-    } else {
-        wrapper.style.display = 'none';
-        trigger.classList.remove('open');
-    }
-}
-
-// UI と DB 操作を結合する
-function switchSharedTab(tabName) {
-    State.currentSharedTab = tabName;
-    UIManager.updateSharedTabUI(tabName);
-    renderSharedContent();
-}
