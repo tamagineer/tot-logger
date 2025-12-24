@@ -3,6 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- キャッシュ対策: ブラウザに常に最新のindex.htmlを取りに行かせる -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
     <title>TOT Logger</title>
     
     <link rel="manifest" href="manifest.json">
@@ -15,7 +21,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     
-    <link rel="stylesheet" href="style.css">
+    <!-- 【変更】キャッシュバスティング: ?v=... を追加して強制再読み込み -->
+    <link rel="stylesheet" href="style.css?v=4.11.4">
 </head>
 <body>
 
@@ -218,12 +225,13 @@
         </div>
 
         <footer class="app-footer">
-            <p>TOT Logger v4.13.0</p>
+            <p>TOT Logger v4.11.4</p>
             <p>Created by Tamas (@tamagineer)</p>
             <p class="disclaimer">This is an unofficial fan tool.</p>
         </footer>
     </div>
 
-    <script type="module" src="js/main.js"></script>
+    <!-- 【変更】キャッシュバスティング: ?v=... を追加して強制再読み込み -->
+    <script type="module" src="js/main.js?v=4.11.4"></script>
 </body>
 </html>
