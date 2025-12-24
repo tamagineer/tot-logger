@@ -330,14 +330,28 @@ function renderStatusTab(reports, container) {
                 <th colspan="2">TOUR A</th><th colspan="2">TOUR B</th><th colspan="2">TOUR C</th>
                 <th rowspan="2" class="col-author">投稿者</th>
             </tr>
-            <tr><th>1F</th><th>2F</th><th>1F</th><th>2F</th><th>1F</th><th>2F</th></tr>
+            <tr>
+                <th>1<span class="floor-suffix">F</span></th>
+                <th>2<span class="floor-suffix">F</span></th>
+                <th>1<span class="floor-suffix">F</span></th>
+                <th>2<span class="floor-suffix">F</span></th>
+                <th>1<span class="floor-suffix">F</span></th>
+                <th>2<span class="floor-suffix">F</span></th>
+            </tr>
         </thead>
     <tbody>`;
     
     reports.forEach(r => {
         const s = r.summary || { A:{}, B:{}, C:{} };
         const suspended = r.suspended || [];
-        const dateStr = r.date.replace(/-/g, '/'); 
+        
+        // 日付フォーマット: 2025/01/01 -> <span class="year-part">2025/</span>01/01
+        const dateObj = new Date(r.date);
+        const y = dateObj.getFullYear();
+        const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const d = String(dateObj.getDate()).padStart(2, '0');
+        const dateHtml = `<span class="year-part">${y}/</span>${m}/${d}`;
+
         const iconUrl = r.author.photoURL || ''; 
         const iconTag = iconUrl ? `<img src="${iconUrl}" class="author-icon-mini">` : '';
         
@@ -352,7 +366,7 @@ function renderStatusTab(reports, container) {
 
         html += `
         <tr>
-            <td class="fixed-col-date">${dateStr}</td>
+            <td class="fixed-col-date">${dateHtml}</td>
             ${getCells('A')}${getCells('B')}${getCells('C')}
             <td class="col-author">
                 <div class="author-info">
@@ -398,32 +412,50 @@ function renderLogsTab(reports, container) {
             ? CONSTANTS.PROFILES[l.profile] : '';
         const profileHtml = profileName ? `<span class="text-profile">(${profileName})</span>` : '';
 
+        // 日付のフォーマット (ログリスト用)
+        // スマホでは日付を短くしたい場合はここも調整可能ですが、今回はそのまま
+        
         html += `
         <div class="shared-log-item">
-            <span class="sl-date">${dateStr}</span>
-            <span class="sl-time">${l.time || '--:--'}</span>
-            
-            <span class="sl-main">
+            <div class="sl-left-group">
+                <div class="sl-datetime">
+                    <span class="sl-date">${dateStr}</span>
+                    <span class="sl-time">${l.time || '--:--'}</span>
+                </div>
+                
                 <div class="log-main-wrapper">
-                    <span class="text-location">${l.tour}-${l.floor}F</span>
-                    <span class="text-separator">/</span>
-                    <span class="text-vehicle">
+                    <div class="badge-location">
+                        <span class="badge-tour">${l.tour}</span>
+                        <span class="badge-floor">${l.floor}F</span>
+                    </div>
+                    <div class="text-vehicle">
                         <span class="label-no">No.</span>${vehicleStr}
-                    </span>
+                    </div>
                     ${profileHtml}
                 </div>
-            </span>
+            </div>
             
-            ${isMine ? `
-            <div class="sl-actions">
-                <button class="sl-btn" onclick="window.closeSharedDbModal(); window.editLog('${l.id}', true)">
-                    <span class="material-symbols-outlined icon-sm" style="font-size:1rem;">edit</span>
-                </button>
-                <button class="sl-btn" onclick="window.closeSharedDbModal(); window.deleteLog('${l.id}', true)">
-                    <span class="material-symbols-outlined icon-sm" style="font-size:1rem;">delete</span>
-                </button>
-            </div>` : ''}
-            <div class="sl-author-info">${iconTag}<span class="sl-author-name">${l.author.name}</span></div>
+            <div class="sl-right-group">
+                <div class="sl-author-info">
+                    ${iconTag}
+                    <span class="sl-author-name">${l.author.name}</span>
+                </div>
+
+                ${isMine ? `
+                <details class="action-menu">
+                    <summary class="icon-btn-more">
+                        <span class="material-symbols-outlined">more_vert</span>
+                    </summary>
+                    <div class="menu-dropdown">
+                        <button onclick="window.closeSharedDbModal(); window.editLog('${l.id}', true)">
+                            <span class="material-symbols-outlined">edit</span> 編集
+                        </button>
+                        <button onclick="window.closeSharedDbModal(); window.deleteLog('${l.id}', true)" class="menu-delete">
+                            <span class="material-symbols-outlined">delete</span> 削除
+                        </button>
+                    </div>
+                </details>` : ''}
+            </div>
         </div>`;
     });
     html += `</div>`;
