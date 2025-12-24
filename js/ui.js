@@ -19,12 +19,12 @@ export const UIManager = {
             submitBtn: document.getElementById('submit-btn'), 
             cancelBtn: document.getElementById('cancel-btn'),
             
-            // 【削除】不採用となった旧時刻UI用のID参照を削除
-            // timeAddBtn: document.getElementById('time-add-btn'),
-            // timeInputWrapper: document.getElementById('time-input-wrapper'),
-            
             historyTrigger: document.querySelector('.menu-trigger-card'),
-            historyWrapper: document.getElementById('history-container-wrapper')
+            historyWrapper: document.getElementById('history-container-wrapper'),
+            
+            // 共有DBモーダル用
+            sharedModal: document.getElementById('shared-db-modal'),
+            sharedTabs: document.querySelectorAll('.tab-btn')
         };
         this.els.date.value = Logic.getTodayStr();
     },
@@ -48,6 +48,65 @@ export const UIManager = {
         }
     },
 
+    // === 時刻入力関連 ===
+    activateTimeInput() {
+        State.isTimeInputVisible = true;
+        const currentVal = document.getElementById('visit-time').value;
+        if (!currentVal) {
+            document.getElementById('visit-time').value = Logic.getCurrentTimeStr();
+        }
+        this.updateAll();
+        
+        const input = document.getElementById('visit-time');
+        setTimeout(() => { if(input.showPicker) input.showPicker(); else input.focus(); }, 100);
+    },
+
+    deactivateTimeInput() {
+        State.isTimeInputVisible = false;
+        document.getElementById('visit-time').value = '';
+        this.updateAll();
+    },
+
+    resetInput(clearSuspended = false) {
+        State.editingId = null;
+        const currentSuspended = clearSuspended ? [] : State.input.suspendedTours;
+        const dateVal = this.els.date.value; 
+
+        State.input = {
+            count: Logic.calculateNextCount(dateVal),
+            floor: null, tour: null, vehicle: null, profile: null,
+            suspendedTours: currentSuspended, memo: ''
+        };
+        
+        this.deactivateTimeInput();
+        this.updateAll();
+        
+        if (State.scrollToId) {
+            setTimeout(() => {
+                const target = document.getElementById(`log-${State.scrollToId}`);
+                if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                State.scrollToId = null;
+            }, 100);
+        }
+    },
+
+    // === モーダル・タブUI制御 (New) ===
+    openSharedModal() {
+        if(this.els.sharedModal) this.els.sharedModal.classList.add('active');
+    },
+
+    closeSharedModal() {
+        if(this.els.sharedModal) this.els.sharedModal.classList.remove('active');
+    },
+
+    updateSharedTabUI(tabName) {
+        if(!this.els.sharedTabs) return;
+        this.els.sharedTabs.forEach(btn => btn.classList.remove('active'));
+        if (tabName === 'status') this.els.sharedTabs[0].classList.add('active');
+        else this.els.sharedTabs[1].classList.add('active');
+    },
+
+    // === UI更新ロジック ===
     updateRoomDisplay() {
         const { tour, floor } = State.input;
         if (tour && floor) {
@@ -76,7 +135,6 @@ export const UIManager = {
             if(btn) {
                 btn.classList.toggle('selected', s.tour === tour);
                 
-                // 運営休止ツアーの場合のスタイル適用
                 if (s.suspendedTours.includes(tour)) {
                     btn.classList.add('btn-suspended-view');
                     btn.classList.remove('btn-caution'); 
