@@ -12,11 +12,70 @@ import {
     fetchSpecialSchedules, initPublishedStatusListener, togglePublish 
 } from "./db.js";
 
-// === グローバル関数として登録 ===
-// 【変更】editLog, deleteLog, closeSharedDbModal は各ファイルで登録済のため削除
-// ここでは handlePublishToggle のみ登録（db.js との依存関係のため）
+// === ローカル関数定義 (windowへの登録は後で行う) ===
 
-window.handlePublishToggle = async (dateStr, checkbox) => {
+const handleEditLog = async (id, fromShared = false) => {
+    const log = State.logs.find(l => l.id === id); 
+    if (!log) {
+        UIManager.showToast("【エラー】この記録の元データが見つかりません", 'error');
+        return;
+    }
+
+    const isPublished = State.publishedDates.has(log.date);
+    
+    let confirmMsg;
+    if (fromShared) {
+        confirmMsg = CONSTANTS.MESSAGES.confirmEditFromShared;
+    } else {
+        confirmMsg = isPublished
+            ? CONSTANTS.MESSAGES.confirmEditPublished
+            : CONSTANTS.MESSAGES.confirmEdit;
+    }
+
+    if (!await UIManager.showConfirmModal(confirmMsg)) return;
+
+    State.editingId = id; 
+    State.input = { ...log, suspendedTours: log.suspended || [] };
+    
+    document.getElementById('visit-date').value = log.date;
+    
+    if(log.time) { 
+        document.getElementById('visit-time').value = log.time;
+        UIManager.activateTimeInput();
+    } else {
+        UIManager.deactivateTimeInput();
+    }
+    UIManager.updateAll();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+const handleVehicleClick = async (num, isCaution, currentRoomKey, assigned, assignments) => {
+    if (State.input.vehicle == num) {
+        State.input.vehicle = null; 
+        UIManager.updateAll();
+        return;
+    }
+    if (State.editingId === null && isCaution) {
+        if (num === 7) {
+            if(!await UIManager.showConfirmModal(CONSTANTS.MESSAGES.vehicle7Caution)) return;
+        } else if (assigned && assigned != num) {
+            if(!await UIManager.showConfirmModal(`この部屋は No.${assigned} で記録済みです。\nNo.${num} に上書きしますか？`)) return;
+        } else {
+            if(!await UIManager.showConfirmModal(`機体 No.${num} は他の部屋で記録済みです。\n移動したとみなして記録しますか？`)) return;
+        }
+    }
+    
+    let inputNum = num;
+    if (num === 9) {
+        const val = prompt("機体番号を入力 (9以降):");
+        if (!val) return;
+        inputNum = val;
+    }
+    State.input.vehicle = inputNum;
+    UIManager.updateAll();
+};
+
+const handlePublishToggle = async (dateStr, checkbox) => {
     const isTurningOn = checkbox.checked;
     const message = isTurningOn ? CONSTANTS.MESSAGES.confirmPublish : CONSTANTS.MESSAGES.confirmUnpublish;
 
@@ -31,7 +90,22 @@ window.handlePublishToggle = async (dateStr, checkbox) => {
 
 // === 初期化とイベントバインディング ===
 document.addEventListener('DOMContentLoaded', async () => {
+    // 1. UI初期化
     UIManager.init();
+
+    // 2. グローバル関数の登録 (モジュール読み込み完了後に確実に実行)
+    window.editLog = handleEditLog;
+    window.handleVehicleClick = handleVehicleClick;
+    window.handlePublishToggle = handlePublishToggle;
+    
+    // db.js からインポートした関数を window に紐付け
+    window.deleteLog = deleteLog;
+    window.shareDailyReport = shareDailyReport;
+    
+    // UI操作をラップして登録
+    window.closeSharedDbModal = () => UIManager.closeSharedModal();
+
+    // 3. データ取得開始
     await fetchSpecialSchedules();
     
     getRedirectResult(auth)
