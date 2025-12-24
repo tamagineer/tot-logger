@@ -22,7 +22,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     
     <!-- キャッシュバスティング更新 -->
-    <link rel="stylesheet" href="style.css?v=4.11.9">
+    <link rel="stylesheet" href="style.css?v=4.12.7">
 </head>
 <body>
 
@@ -192,7 +192,8 @@
                         <button class="header-icon-btn refresh-btn">
                             <span class="material-symbols-outlined">refresh</span>
                         </button>
-                        <button class="header-icon-btn modal-close-btn" onclick="window.closeSharedDbModal()">
+                        <!-- 【修正】onclick属性を削除 -->
+                        <button class="header-icon-btn modal-close-btn">
                             <span class="material-symbols-outlined">close</span>
                         </button>
                     </div>
@@ -222,14 +223,29 @@
             </div>
         </div>
 
+        <!-- カスタム入力モーダル（テキスト入力対応） -->
+        <div id="custom-input-modal" class="modal-overlay" style="z-index: 2001;">
+            <div class="modal-content confirm-modal-content">
+                <div class="confirm-body">
+                    <span class="material-symbols-outlined confirm-icon">edit</span>
+                    <p id="input-message" class="confirm-text"></p>
+                    <input type="text" id="modal-input-field" class="modal-text-input" placeholder="">
+                </div>
+                <div class="confirm-actions">
+                    <button id="input-cancel-btn" class="btn-text">キャンセル</button>
+                    <button id="input-ok-btn" class="btn-primary">OK</button>
+                </div>
+            </div>
+        </div>
+
         <footer class="app-footer">
-            <p>TOT Logger v4.11.9</p>
+            <p>TOT Logger v4.12.7</p>
             <p>Created by Tamas (@tamagineer)</p>
             <p class="disclaimer">This is an unofficial fan tool.</p>
         </footer>
     </div>
 
     <!-- キャッシュバスティング更新 -->
-    <script type="module" src="js/main.js?v=4.11.9"></script>
+    <script type="module" src="js/main.js?v=4.12.7"></script>
 </body>
 </html>

@@ -84,7 +84,7 @@ export function initFirestoreListener() {
 
     }, (error) => {
         console.error("Firestore Error:", error);
-        UIManager.showToast("データ読み込みエラー: " + error.message, 'error');
+        UIManager.showToast("読み込み失敗", 'error');
     });
 }
 
@@ -112,13 +112,19 @@ export async function saveToFirestore() {
         return; 
     }
     
+    UIManager.setLoading(true);
+    
     const s = State.input;
     if (!s.floor || !s.tour || !s.profile) {
         UIManager.showToast("フロア、ツアー、落下プロファイルを選択してください", 'error'); 
+        UIManager.setLoading(false);
         return;
     }
     if (!s.vehicle) {
-        if (!await UIManager.showConfirmModal(CONSTANTS.MESSAGES.vehicleEmptyCaution)) return;
+        if (!await UIManager.showConfirmModal(CONSTANTS.MESSAGES.vehicleEmptyCaution)) {
+            UIManager.setLoading(false);
+            return;
+        }
     }
 
     if (State.editingId === null) {
@@ -129,12 +135,18 @@ export async function saveToFirestore() {
         const month = d.getMonth();
 
         if (!isSpecialMode && s.profile !== 'TOWER 1' && s.profile !== 'UNKNOWN') {
-            if (!await UIManager.showConfirmModal(CONSTANTS.MESSAGES.specialOffCaution)) return;
+            if (!await UIManager.showConfirmModal(CONSTANTS.MESSAGES.specialOffCaution)) {
+                UIManager.setLoading(false);
+                return;
+            }
         }
 
         const hasDef = State.specialSchedules.some(def => def.year === year);
         if (!hasDef && month <= 2 && !isSpecialMode) {
-            if (!await UIManager.showConfirmModal(CONSTANTS.MESSAGES.janMarCaution)) return;
+            if (!await UIManager.showConfirmModal(CONSTANTS.MESSAGES.janMarCaution)) {
+                UIManager.setLoading(false);
+                return;
+            }
         }
     }
 
@@ -177,6 +189,8 @@ export async function saveToFirestore() {
 
     } catch (e) { 
         UIManager.showToast("保存失敗: " + e.message, 'error');
+    } finally {
+        UIManager.setLoading(false);
     }
 }
 
@@ -200,10 +214,14 @@ export const deleteLog = async (id, fromShared = false) => {
 
     try {
         await deleteDoc(doc(db, "logs", id));
-        UIManager.showToast("記録を削除しました", 'info');
+        UIManager.showToast("削除しました", 'info');
         
         if (targetDate && isPublished) {
             setTimeout(() => shareDailyReport(targetDate, true), 500);
+        }
+        
+        if (fromShared) {
+            loadSharedReports();
         }
 
     } catch(e) { console.error(e); }
@@ -274,15 +292,15 @@ export const shareDailyReport = async (targetDate, silent = false) => {
 
     try {
         await setDoc(reportRef, reportData);
-        if(!silent) UIManager.showToast("公開しました！", 'success');
+        if(!silent) UIManager.showToast("公開しました", 'success');
     } catch (e) {
-        if(!silent) UIManager.showToast("公開失敗: " + e.message, 'error');
+        if(!silent) UIManager.showToast("公開失敗", 'error');
     }
 };
 
 export const loadSharedReports = async () => {
-    const contentArea = document.getElementById('shared-content-area');
-    contentArea.innerHTML = '<p class="loading-text" style="color:#888;">読み込み中...</p>';
+    // UI操作は UIManager に任せる
+    UIManager.showSharedLoading();
     
     try {
         const q = query(collection(db, "shared_reports"));
@@ -294,134 +312,14 @@ export const loadSharedReports = async () => {
         fetchedReports.sort((a, b) => b.date.localeCompare(a.date));
 
         State.sharedReports = fetchedReports;
-        renderSharedContent();
+        
+        // 【変更】ここでHTML生成をせず、UIマネージャーに描画を依頼する
+        UIManager.renderSharedContent();
+
     } catch (e) {
         console.error(e);
-        contentArea.innerHTML = '<p style="color:#f55;">読み込みエラーが発生しました。</p>';
+        UIManager.showSharedError();
     }
 };
 
-export function renderSharedContent() {
-    const contentArea = document.getElementById('shared-content-area');
-    const reports = State.sharedReports;
-
-    if (reports.length === 0) {
-        contentArea.innerHTML = '<p style="color:#888;">共有レポートはありません。</p>';
-        return;
-    }
-
-    if (State.currentSharedTab === 'status') {
-        renderStatusTab(reports, contentArea);
-    } else {
-        renderLogsTab(reports, contentArea);
-    }
-}
-
-function renderStatusTab(reports, container) {
-    let html = `
-    <div class="status-scroll-wrapper"><table class="shared-status-table">
-        <thead>
-            <tr>
-                <th rowspan="2" class="fixed-col-date">日付</th>
-                <th colspan="2">TOUR A</th><th colspan="2">TOUR B</th><th colspan="2">TOUR C</th>
-                <th rowspan="2" class="col-author">投稿者</th>
-            </tr>
-            <tr><th>1F</th><th>2F</th><th>1F</th><th>2F</th><th>1F</th><th>2F</th></tr>
-        </thead>
-    <tbody>`;
-    
-    reports.forEach(r => {
-        const s = r.summary || { A:{}, B:{}, C:{} };
-        const suspended = r.suspended || [];
-        const dateStr = r.date.replace(/-/g, '/'); 
-        const iconUrl = r.author.photoURL || ''; 
-        const iconTag = iconUrl ? `<img src="${iconUrl}" class="author-icon-mini">` : '';
-        
-        const getCells = (tour) => {
-            if (suspended.includes(tour)) {
-                return `<td class="td-suspended">×</td><td class="td-suspended">×</td>`;
-            }
-            const f1 = (s[tour] && s[tour][1]) ? s[tour][1] : '-';
-            const f2 = (s[tour] && s[tour][2]) ? s[tour][2] : '-';
-            return `<td>${f1}</td><td>${f2}</td>`;
-        };
-
-        html += `
-        <tr>
-            <td class="fixed-col-date">${dateStr}</td>
-            ${getCells('A')}${getCells('B')}${getCells('C')}
-            <td class="col-author">
-                <div class="author-info">
-                    ${iconTag}
-                    <span class="author-name-text">${r.author.name}</span>
-                </div>
-            </td>
-        </tr>`;
-    });
-    html += `</tbody></table></div>`;
-    container.innerHTML = html;
-}
-
-function renderLogsTab(reports, container) {
-    let allLogs = [];
-    reports.forEach(r => {
-        if (r.logs) {
-            r.logs.forEach(l => {
-                allLogs.push({ ...l, author: r.author, date: r.date });
-            });
-        }
-    });
-
-    allLogs.sort((a, b) => {
-        if (a.date !== b.date) return b.date.localeCompare(a.date);
-        if (!a.time) return 1; if (!b.time) return -1;
-        return b.time.localeCompare(a.time);
-    });
-
-    let html = `<div style="text-align:left;">`;
-    
-    allLogs.forEach(l => {
-        const dateStr = l.date.replace(/-/g, '/'); 
-        const profileStr = (l.profile && l.profile !== 'UNKNOWN' && l.profile !== 'TOWER 1') 
-            ? `<span class="sl-badge">(${CONSTANTS.PROFILES[l.profile]})</span>` : '';
-        const iconUrl = l.author.photoURL || ''; 
-        const iconTag = iconUrl ? `<img src="${iconUrl}" class="sl-author-img">` : '';
-        
-        const isMine = (State.user && l.author.uid === State.user.uid && l.id);
-
-        const vehicleStr = l.vehicle ? l.vehicle : '--'; 
-        const profileName = (l.profile && l.profile !== 'UNKNOWN' && l.profile !== 'TOWER 1') 
-            ? CONSTANTS.PROFILES[l.profile] : '';
-        const profileHtml = profileName ? `<span class="text-profile">(${profileName})</span>` : '';
-
-        html += `
-        <div class="shared-log-item">
-            <span class="sl-date">${dateStr}</span>
-            <span class="sl-time">${l.time || '--:--'}</span>
-            
-            <span class="sl-main">
-                <div class="log-main-wrapper">
-                    <span class="text-location">${l.tour}-${l.floor}F</span>
-                    <span class="text-separator">/</span>
-                    <span class="text-vehicle">
-                        <span class="label-no">No.</span>${vehicleStr}
-                    </span>
-                    ${profileHtml}
-                </div>
-            </span>
-            
-            ${isMine ? `
-            <div class="sl-actions">
-                <button class="sl-btn" onclick="window.closeSharedDbModal(); window.editLog('${l.id}', true)">
-                    <span class="material-symbols-outlined icon-sm" style="font-size:1rem;">edit</span>
-                </button>
-                <button class="sl-btn" onclick="window.closeSharedDbModal(); window.deleteLog('${l.id}', true)">
-                    <span class="material-symbols-outlined icon-sm" style="font-size:1rem;">delete</span>
-                </button>
-            </div>` : ''}
-            <div class="sl-author-info">${iconTag}<span class="sl-author-name">${l.author.name}</span></div>
-        </div>`;
-    });
-    html += `</div>`;
-    container.innerHTML = html;
-}
+// 【削除】HTML生成系の関数 (renderSharedContent, renderStatusTab, renderLogsTab) は ui.js へ移動

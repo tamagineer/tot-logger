@@ -24,9 +24,18 @@ export const UIManager = {
             
             // 共有DBモーダル用
             sharedModal: document.getElementById('shared-db-modal'),
-            sharedTabs: document.querySelectorAll('.tab-btn')
+            sharedTabs: document.querySelectorAll('.tab-btn'),
+            sharedContent: document.getElementById('shared-content-area') // 追加
         };
         this.els.date.value = Logic.getTodayStr();
+
+        // ブラウザの戻るボタン（popstate）検知
+        window.addEventListener('popstate', (event) => {
+            if (this.els.sharedModal && this.els.sharedModal.classList.contains('active')) {
+                this.els.sharedModal.classList.remove('active');
+                document.body.classList.remove('modal-open');
+            }
+        });
     },
 
     updateAll() {
@@ -48,7 +57,6 @@ export const UIManager = {
         }
     },
 
-    // === 時刻入力関連 ===
     activateTimeInput() {
         State.isTimeInputVisible = true;
         const currentVal = document.getElementById('visit-time').value;
@@ -92,11 +100,22 @@ export const UIManager = {
 
     // === モーダル・タブUI制御 ===
     openSharedModal() {
-        if(this.els.sharedModal) this.els.sharedModal.classList.add('active');
+        if (this.els.sharedModal && !this.els.sharedModal.classList.contains('active')) {
+            history.pushState({ modal: 'shared' }, '', '');
+            this.els.sharedModal.classList.add('active');
+            document.body.classList.add('modal-open');
+        }
     },
 
     closeSharedModal() {
-        if(this.els.sharedModal) this.els.sharedModal.classList.remove('active');
+        if (this.els.sharedModal && this.els.sharedModal.classList.contains('active')) {
+            if (history.state && history.state.modal === 'shared') {
+                history.back();
+            } else {
+                this.els.sharedModal.classList.remove('active');
+                document.body.classList.remove('modal-open');
+            }
+        }
     },
 
     updateSharedTabUI(tabName) {
@@ -106,7 +125,21 @@ export const UIManager = {
         else this.els.sharedTabs[1].classList.add('active');
     },
 
-    // === UI更新ロジック ===
+    setLoading(isLoading) {
+        const btn = this.els.submitBtn;
+        if (isLoading) {
+            btn.classList.add('loading');
+            btn.innerHTML = '<span class="material-symbols-outlined icon-sm">sync</span> 送信中...';
+        } else {
+            btn.classList.remove('loading');
+            if (State.editingId) {
+                btn.innerHTML = '<span class="material-symbols-outlined icon-sm">check_circle</span> 修正を適用';
+            } else {
+                btn.innerText = "記録する";
+            }
+        }
+    },
+
     updateRoomDisplay() {
         const { tour, floor } = State.input;
         if (tour && floor) {
@@ -187,7 +220,12 @@ export const UIManager = {
         for (let i = 1; i <= 9; i++) {
             const btn = document.createElement('button'); 
             btn.className = 'btn vehicle-btn'; 
-            btn.innerText = (i === 9) ? '9+' : i.toString();
+            
+            if (i === 9) {
+                btn.innerHTML = '<span class="material-symbols-outlined">edit</span>';
+            } else {
+                btn.innerText = i.toString();
+            }
 
             let isCaution = false;
             if (State.editingId === null) {
@@ -197,6 +235,7 @@ export const UIManager = {
             }
 
             if (i === 9 || isCaution) btn.classList.add('btn-caution');
+            
             if (State.input.vehicle == i || (i === 9 && State.input.vehicle >= 9)) btn.classList.add('selected');
 
             btn.addEventListener('click', () => {
@@ -210,18 +249,20 @@ export const UIManager = {
     },
 
     updateEditModeUI() {
-        if (State.editingId) {
-            this.els.submitBtn.innerHTML = '<span class="material-symbols-outlined icon-sm">check_circle</span> 修正を適用';
-            this.els.cancelBtn.style.display = "flex";
-        } else {
-            this.els.submitBtn.innerText = "記録する";
-            this.els.cancelBtn.style.display = "none";
+        if (!this.els.submitBtn.classList.contains('loading')) {
+            if (State.editingId) {
+                this.els.submitBtn.innerHTML = '<span class="material-symbols-outlined icon-sm">check_circle</span> 修正を適用';
+                this.els.cancelBtn.style.display = "flex";
+            } else {
+                this.els.submitBtn.innerText = "記録する";
+                this.els.cancelBtn.style.display = "none";
+            }
         }
     },
 
     renderHistory() {
         const div = this.els.historyContainer; if(!div) return;
-        if (State.logs.length === 0) { div.innerHTML = "<p style='color:#666;'>履歴なし</p>"; return; }
+        if (State.logs.length === 0) { div.innerHTML = "<p style='color:#666;'>記録なし</p>"; return; }
 
         const groups = {};
         State.logs.forEach(log => { if (log.date) { if (!groups[log.date]) groups[log.date] = []; groups[log.date].push(log); } });
@@ -242,6 +283,7 @@ export const UIManager = {
             const isOpen = State.openHistoryDates.has(date);
             const openAttr = isOpen ? 'open' : '';
 
+            // window.handlePublishToggle の代わりに data属性を使用 (イベント委譲)
             html += `<details class="${highlightClass}" ${openAttr} data-date="${date}">
                 <summary>
                     <span class="material-symbols-outlined arrow-icon-left">chevron_right</span>
@@ -253,7 +295,7 @@ export const UIManager = {
                     <div class="publish-switch-area" onclick="event.stopPropagation()">
                         <span class="publish-label">${publishLabel}</span>
                         <label class="toggle-switch small-scale">
-                            <input type="checkbox" onchange="window.handlePublishToggle('${date}', this)" ${checkedAttr}>
+                            <input type="checkbox" class="action-check" data-action="toggle-publish" data-date="${date}" ${checkedAttr}>
                             <span class="slider"></span>
                         </label>
                     </div>
@@ -272,6 +314,7 @@ export const UIManager = {
                 const profileHtml = (log.profile !== 'TOWER 1' && log.profile !== 'UNKNOWN') 
                     ? `<span class="text-profile">${profileName}</span>` : '';
 
+                // window.editLog/deleteLog の代わりに data-action を使用
                 html += `
                 <div class="log-entry" id="log-${log.id}">
                     <div class="log-main-row">
@@ -291,10 +334,10 @@ export const UIManager = {
                         </div>
                         ${isMine ? `
                             <div class="log-actions">
-                                <button class="icon-btn" onclick="window.editLog('${log.id}')">
+                                <button class="icon-btn action-btn" data-action="edit" data-id="${log.id}">
                                     <span class="material-symbols-outlined icon-sm">edit</span>
                                 </button>
-                                <button class="icon-btn" onclick="window.deleteLog('${log.id}')">
+                                <button class="icon-btn action-btn" data-action="delete" data-id="${log.id}">
                                     <span class="material-symbols-outlined icon-sm">delete</span>
                                 </button>
                             </div>` : ''}
@@ -313,6 +356,152 @@ export const UIManager = {
                 else State.openHistoryDates.delete(date);
             });
         });
+    },
+
+    // === 共有DB表示関連（db.jsから移動） ===
+    
+    showSharedLoading() {
+        if(this.els.sharedContent) this.els.sharedContent.innerHTML = '<p class="loading-text" style="color:#888;">読み込み中</p>';
+    },
+
+    showSharedError() {
+        if(this.els.sharedContent) this.els.sharedContent.innerHTML = '<p style="color:#f55;">読み込み失敗</p>';
+    },
+
+    renderSharedContent() {
+        const contentArea = this.els.sharedContent;
+        const reports = State.sharedReports;
+
+        if (!reports || reports.length === 0) {
+            contentArea.innerHTML = '<p style="color:#888;">レポートなし</p>';
+            return;
+        }
+
+        if (State.currentSharedTab === 'status') {
+            this.renderSharedStatusTab(reports, contentArea);
+        } else {
+            this.renderSharedLogsTab(reports, contentArea);
+        }
+    },
+
+    renderSharedStatusTab(reports, container) {
+        let html = `
+        <div class="status-scroll-wrapper"><table class="shared-status-table">
+            <thead>
+                <tr>
+                    <th rowspan="2" class="fixed-col-date">日付</th>
+                    <th colspan="2">TOUR A</th><th colspan="2">TOUR B</th><th colspan="2">TOUR C</th>
+                    <th rowspan="2" class="col-author">投稿者</th>
+                </tr>
+                <tr><th>1F</th><th>2F</th><th>1F</th><th>2F</th><th>1F</th><th>2F</th></tr>
+            </thead>
+        <tbody>`;
+        
+        reports.forEach(r => {
+            const s = r.summary || { A:{}, B:{}, C:{} };
+            const suspended = r.suspended || [];
+            const dateStr = r.date.replace(/-/g, '/'); 
+            const iconUrl = r.author.photoURL || ''; 
+            const iconTag = iconUrl ? `<img src="${iconUrl}" class="author-icon-mini">` : '';
+            
+            const getCells = (tour) => {
+                if (suspended.includes(tour)) {
+                    return `<td class="td-suspended">×</td><td class="td-suspended">×</td>`;
+                }
+                const f1 = (s[tour] && s[tour][1]) ? s[tour][1] : '-';
+                const f2 = (s[tour] && s[tour][2]) ? s[tour][2] : '-';
+                return `<td>${f1}</td><td>${f2}</td>`;
+            };
+
+            html += `
+            <tr>
+                <td class="fixed-col-date">${dateStr}</td>
+                ${getCells('A')}${getCells('B')}${getCells('C')}
+                <td class="col-author">
+                    <div class="author-info">
+                        ${iconTag}
+                        <span class="author-name-text">${r.author.name}</span>
+                    </div>
+                </td>
+            </tr>`;
+        });
+        html += `</tbody></table></div>`;
+        container.innerHTML = html;
+    },
+
+    renderSharedLogsTab(reports, container) {
+        // 日付グループ化版ロジックを採用
+        let allLogs = [];
+        reports.forEach(r => {
+            if (r.logs) {
+                r.logs.forEach(l => {
+                    allLogs.push({ ...l, author: r.author, date: r.date });
+                });
+            }
+        });
+
+        allLogs.sort((a, b) => {
+            if (a.date !== b.date) return b.date.localeCompare(a.date);
+            if (!a.time) return 1; if (!b.time) return -1;
+            return b.time.localeCompare(a.time);
+        });
+
+        const groupedLogs = {};
+        allLogs.forEach(log => {
+            if (!groupedLogs[log.date]) groupedLogs[log.date] = [];
+            groupedLogs[log.date].push(log);
+        });
+
+        let html = `<div style="text-align:left;">`;
+        
+        Object.keys(groupedLogs).sort((a,b)=>b.localeCompare(a)).forEach(date => {
+            const dateStr = date.replace(/-/g, '/');
+            // 日付見出しを追加
+            html += `<div class="shared-date-header">${dateStr}</div>`;
+            
+            groupedLogs[date].forEach(l => {
+                const iconUrl = l.author.photoURL || ''; 
+                const iconTag = iconUrl ? `<img src="${iconUrl}" class="sl-author-img">` : '';
+                
+                const isMine = (State.user && l.author.uid === State.user.uid && l.id);
+
+                const vehicleStr = l.vehicle ? l.vehicle : '--'; 
+                const profileName = (l.profile && l.profile !== 'UNKNOWN' && l.profile !== 'TOWER 1') 
+                    ? CONSTANTS.PROFILES[l.profile] : '';
+                const profileHtml = profileName ? `<span class="text-profile">(${profileName})</span>` : '';
+
+                // window.closeSharedDbModal(); window.editLog(...) の代わりに data-action を使用
+                html += `
+                <div class="shared-log-item">
+                    <span class="sl-time">${l.time || '--:--'}</span>
+                    
+                    <span class="sl-main">
+                        <div class="log-main-wrapper">
+                            <span class="text-location">${l.tour}-${l.floor}F</span>
+                            <span class="text-separator">/</span>
+                            <span class="text-vehicle">
+                                <span class="label-no">No.</span>${vehicleStr}
+                            </span>
+                            ${profileHtml}
+                        </div>
+                    </span>
+                    
+                    ${isMine ? `
+                    <div class="sl-actions">
+                        <button class="sl-btn action-btn-shared" data-action="edit-shared" data-id="${l.id}">
+                            <span class="material-symbols-outlined icon-sm" style="font-size:1rem;">edit</span>
+                        </button>
+                        <button class="sl-btn action-btn-shared" data-action="delete-shared" data-id="${l.id}">
+                            <span class="material-symbols-outlined icon-sm" style="font-size:1rem;">delete</span>
+                        </button>
+                    </div>` : ''}
+                    <div class="sl-author-info">${iconTag}<span class="sl-author-name">${l.author.name}</span></div>
+                </div>`;
+            });
+        });
+        
+        html += `</div>`;
+        container.innerHTML = html;
     },
 
     showToast(message, type = 'normal') {
@@ -369,6 +558,47 @@ export const UIManager = {
             const onCancel = () => {
                 cleanup();
                 resolve(false);
+            };
+
+            okBtn.addEventListener('click', onOk);
+            cancelBtn.addEventListener('click', onCancel);
+        });
+    },
+
+    async showInputModal(message, placeholder = "") {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('custom-input-modal');
+            const msgEl = document.getElementById('input-message');
+            const inputEl = document.getElementById('modal-input-field');
+            const okBtn = document.getElementById('input-ok-btn');
+            const cancelBtn = document.getElementById('input-cancel-btn');
+
+            if (!modal || !inputEl) {
+                resolve(prompt(message, placeholder));
+                return;
+            }
+
+            msgEl.innerText = message;
+            inputEl.value = placeholder;
+            modal.classList.add('active');
+            
+            setTimeout(() => inputEl.focus(), 50);
+
+            const cleanup = () => {
+                okBtn.removeEventListener('click', onOk);
+                cancelBtn.removeEventListener('click', onCancel);
+                modal.classList.remove('active');
+            };
+
+            const onOk = () => {
+                const val = inputEl.value;
+                cleanup();
+                resolve(val);
+            };
+
+            const onCancel = () => {
+                cleanup();
+                resolve(null);
             };
 
             okBtn.addEventListener('click', onOk);

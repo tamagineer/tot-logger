@@ -8,11 +8,11 @@ import { UIManager } from "./ui.js";
 import { loginApp, logoutApp } from "./auth.js";
 import { 
     initFirestoreListener, saveToFirestore, deleteLog, 
-    shareDailyReport, loadSharedReports, renderSharedContent,
+    shareDailyReport, loadSharedReports,
     fetchSpecialSchedules, initPublishedStatusListener, togglePublish 
 } from "./db.js";
 
-// === ローカル関数定義 (windowへの登録は init 内で行う) ===
+// === ローカル関数定義 (windowへの登録は行わない) ===
 
 const handleEditLog = async (id, fromShared = false) => {
     const log = State.logs.find(l => l.id === id); 
@@ -45,6 +45,11 @@ const handleEditLog = async (id, fromShared = false) => {
     } else {
         UIManager.deactivateTimeInput();
     }
+    
+    if (fromShared) {
+        UIManager.closeSharedModal();
+    }
+
     UIManager.updateAll();
     window.scrollTo({ top: 0, behavior: 'smooth' });
 };
@@ -67,9 +72,18 @@ const handleVehicleClick = async (num, isCaution, currentRoomKey, assigned, assi
     
     let inputNum = num;
     if (num === 9) {
-        const val = prompt("機体番号を入力 (9以降):");
-        if (!val) return;
-        inputNum = val;
+        while(true) {
+            const val = await UIManager.showInputModal("機体番号を入力", "");
+            if (val === null) return; 
+            
+            const trimmed = val.trim();
+            if (!trimmed) {
+                UIManager.showToast("入力してください", 'error');
+                continue;
+            }
+            inputNum = trimmed;
+            break;
+        }
     }
     State.input.vehicle = inputNum;
     UIManager.updateAll();
@@ -88,11 +102,10 @@ const handlePublishToggle = async (dateStr, checkbox) => {
     togglePublish(dateStr, isTurningOn);
 };
 
-// UI と DB 操作を結合する関数
 const switchSharedTab = (tabName) => {
     State.currentSharedTab = tabName;
     UIManager.updateSharedTabUI(tabName);
-    renderSharedContent();
+    UIManager.renderSharedContent();
 };
 
 // === Functions used by Logic / Events ===
@@ -218,24 +231,72 @@ const toggleHistorySection = () => {
     }
 };
 
+// === イベント委譲の設定 (Event Delegation) ===
+// window.xxx への関数登録の代わりに、コンテナへのイベントリスナーを使用
+
+const setupDelegatedEvents = () => {
+    // 1. マイログコンテナ内のクリックイベント (Edit, Delete, Publish Toggle)
+    const historyContainer = document.getElementById('history-log');
+    if (historyContainer) {
+        historyContainer.addEventListener('click', (e) => {
+            // ボタンの処理 (Edit / Delete)
+            const btn = e.target.closest('button.action-btn');
+            if (btn) {
+                const action = btn.dataset.action;
+                const id = btn.dataset.id;
+                if (action === 'edit') handleEditLog(id);
+                if (action === 'delete') deleteLog(id);
+                return;
+            }
+
+            // チェックボックスの処理 (Publish Toggle)
+            // チェックボックスの変更イベントは change で捕捉するが、クリックでの伝播も考慮
+            // ここでは change イベントを別途リッスンするか、HTML側で onchange 属性を使わないようにするのが理想だが、
+            // 今回は既存構造を維持しつつ、チェックボックスのクリックだけ捕捉して handlePublishToggle を呼ぶ形にする
+            // ui.js で input 要素に change イベントハンドラを登録していないため、delegation で処理する
+        });
+        
+        // チェックボックスの変更イベント
+        historyContainer.addEventListener('change', (e) => {
+            const check = e.target;
+            if (check.classList.contains('action-check') && check.dataset.action === 'toggle-publish') {
+                handlePublishToggle(check.dataset.date, check);
+            }
+        });
+    }
+
+    // 2. 共有ログコンテナ内のクリックイベント (Edit Shared, Delete Shared)
+    const sharedContainer = document.getElementById('shared-content-area');
+    if (sharedContainer) {
+        sharedContainer.addEventListener('click', (e) => {
+            const btn = e.target.closest('button.action-btn-shared');
+            if (btn) {
+                const action = btn.dataset.action;
+                const id = btn.dataset.id;
+                if (action === 'edit-shared') handleEditLog(id, true);
+                if (action === 'delete-shared') deleteLog(id, true);
+            }
+        });
+    }
+};
+
+
 // === 初期化とイベントバインディング ===
 document.addEventListener('DOMContentLoaded', async () => {
-    // 1. UI初期化
     UIManager.init();
-
-    // 2. グローバル関数の登録 (モジュール読み込み完了後に確実に実行)
-    window.editLog = handleEditLog;
-    window.handleVehicleClick = handleVehicleClick;
-    window.handlePublishToggle = handlePublishToggle;
     
-    // db.js からインポートした関数を window に紐付け
-    window.deleteLog = deleteLog;
-    window.shareDailyReport = shareDailyReport;
-    
-    // UI操作をラップして登録
-    window.closeSharedDbModal = () => UIManager.closeSharedModal();
+    // windowオブジェクトへの登録を削除し、イベントハンドラをmain.js内で完結させる
+    // window.handleVehicleClick のみ、ui.jsの動的生成ボタンから呼ばれるため一時的に保持する案もあるが、
+    // ここも可能なら委譲すべき。今回は ui.js から呼ばれる window.handleVehicleClick だけ残し、他は削除。
+    window.handleVehicleClick = handleVehicleClick; 
 
-    // 3. データ取得開始
+    // イベント委譲のセットアップ
+    setupDelegatedEvents();
+
+    document.querySelector('.modal-close-btn').addEventListener('click', () => {
+        UIManager.closeSharedModal();
+    });
+
     await fetchSpecialSchedules();
     
     getRedirectResult(auth)
@@ -285,12 +346,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // === Event Listeners ===
-    document.getElementById('login-btn').addEventListener('click', loginApp);
+    // ログイン処理のエラーハンドリング
+    document.getElementById('login-btn').addEventListener('click', async () => {
+        try {
+            await loginApp();
+        } catch (error) {
+            // auth.js から投げられたエラーをここで受けて Toast 表示
+            UIManager.showToast("ログインエラー: " + error.message, 'error');
+        }
+    });
     
     document.getElementById('logout-btn').addEventListener('click', async () => {
         if (await UIManager.showConfirmModal(CONSTANTS.MESSAGES.confirmLogout)) {
-            logoutApp();
+            try {
+                await logoutApp();
+            } catch (error) {
+                UIManager.showToast("ログアウトエラー", 'error');
+            }
         }
     });
 
@@ -330,18 +402,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.querySelector('.menu-trigger-card').addEventListener('click', toggleHistorySection);
     
-    // みんなのログを開く処理
     document.querySelector('.shared-trigger').addEventListener('click', () => {
         UIManager.openSharedModal();
         loadSharedReports();
     });
     
     document.querySelector('.refresh-btn').addEventListener('click', loadSharedReports);
-    
-    // 閉じるボタン
-    document.querySelector('.modal-close-btn').addEventListener('click', () => {
-        UIManager.closeSharedModal();
-    });
     
     const tabs = document.querySelectorAll('.tab-btn');
     tabs[0].addEventListener('click', () => switchSharedTab('status'));
