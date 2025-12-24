@@ -33,10 +33,32 @@ export async function fetchSpecialSchedules() {
 
 // === Firestore Listeners ===
 export function initFirestoreListener() {
-    const q = query(collection(db, "logs"), orderBy("date", "desc"), orderBy("createdAt", "desc"));
+    if (!State.user) return; // ユーザー不在ならリッスンしない
+
+    // 【修正】インデックスエラーを回避するため、Firestore側でのソート(orderBy)を削除。
+    // whereのみであれば、設定なしで動作します。
+    const q = query(
+        collection(db, "logs"), 
+        where("author.uid", "==", State.user.uid)
+    );
     
     onSnapshot(q, (snapshot) => {
-        State.logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // データを取得
+        let fetchedLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // 【修正】JS側でソートを実行 (日付の降順 -> 作成日時の降順)
+        fetchedLogs.sort((a, b) => {
+            // 1. 日付で比較
+            if (a.date !== b.date) return b.date.localeCompare(a.date);
+            
+            // 2. 作成日時で比較
+            // (serverTimestamp直後はnullの場合があるため、Date.now()で代用して最上位に来るようにする)
+            const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : Date.now();
+            const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : Date.now();
+            return timeB - timeA;
+        });
+
+        State.logs = fetchedLogs;
         
         if (!State.editingId) {
             const dateVal = document.getElementById('visit-date').value;
@@ -69,7 +91,10 @@ export function initFirestoreListener() {
             }, 300);
         }
 
-    }, (error) => console.error("Firestore Error:", error));
+    }, (error) => {
+        console.error("Firestore Error:", error);
+        UIManager.showToast("データ読み込みエラー: " + error.message, 'error');
+    });
 }
 
 export function initPublishedStatusListener() {
@@ -91,14 +116,18 @@ export function initPublishedStatusListener() {
 
 // === CRUD Operations ===
 export async function saveToFirestore() {
-    if (!State.user) { alert(CONSTANTS.MESSAGES.loginRequired); return; }
+    if (!State.user) { 
+        UIManager.showToast(CONSTANTS.MESSAGES.loginRequired, 'error'); 
+        return; 
+    }
     
     const s = State.input;
     if (!s.floor || !s.tour || !s.profile) {
-        alert("【注意】\nフロア、ツアー、落下プロファイルを選択してください。"); return;
+        UIManager.showToast("フロア、ツアー、落下プロファイルを選択してください", 'error'); 
+        return;
     }
     if (!s.vehicle) {
-        if (!confirm(CONSTANTS.MESSAGES.vehicleEmptyCaution)) return;
+        if (!await UIManager.showConfirmModal(CONSTANTS.MESSAGES.vehicleEmptyCaution)) return;
     }
 
     if (State.editingId === null) {
@@ -109,12 +138,12 @@ export async function saveToFirestore() {
         const month = d.getMonth();
 
         if (!isSpecialMode && s.profile !== 'TOWER 1' && s.profile !== 'UNKNOWN') {
-            if (!confirm(CONSTANTS.MESSAGES.specialOffCaution)) return;
+            if (!await UIManager.showConfirmModal(CONSTANTS.MESSAGES.specialOffCaution)) return;
         }
 
         const hasDef = State.specialSchedules.some(def => def.year === year);
         if (!hasDef && month <= 2 && !isSpecialMode) {
-            if (!confirm(CONSTANTS.MESSAGES.janMarCaution)) return;
+            if (!await UIManager.showConfirmModal(CONSTANTS.MESSAGES.janMarCaution)) return;
         }
     }
 
@@ -138,12 +167,12 @@ export async function saveToFirestore() {
         
         if (isUpdate) {
             await updateDoc(doc(db, "logs", State.editingId), logData);
-            alert(CONSTANTS.MESSAGES.updateSuccess);
+            UIManager.showToast(CONSTANTS.MESSAGES.updateSuccess, 'success');
         } else {
             logData.createdAt = serverTimestamp();
             const docRef = await addDoc(collection(db, "logs"), logData);
             targetId = docRef.id;
-            alert(CONSTANTS.MESSAGES.saveSuccess);
+            UIManager.showToast(CONSTANTS.MESSAGES.saveSuccess, 'success');
         }
         
         State.scrollToId = targetId;
@@ -154,7 +183,9 @@ export async function saveToFirestore() {
             setTimeout(() => shareDailyReport(dateVal, true), 500);
         }
 
-    } catch (e) { alert("保存失敗: " + e.message); }
+    } catch (e) { 
+        UIManager.showToast("保存失敗: " + e.message, 'error');
+    }
 }
 
 export const deleteLog = async (id, fromShared = false) => { 
@@ -173,10 +204,11 @@ export const deleteLog = async (id, fromShared = false) => {
             : CONSTANTS.MESSAGES.confirmDelete;
     }
 
-    if (!confirm(confirmMsg)) return;
+    if (!await UIManager.showConfirmModal(confirmMsg)) return;
 
     try {
         await deleteDoc(doc(db, "logs", id));
+        UIManager.showToast("記録を削除しました", 'info');
         
         if (targetDate && isPublished) {
             setTimeout(() => shareDailyReport(targetDate, true), 500);
@@ -198,6 +230,7 @@ export const togglePublish = async (dateStr, isTurningOn) => {
             await deleteDoc(doc(db, "shared_reports", docId));
             State.publishedDates.delete(dateStr);
             UIManager.renderHistory();
+            UIManager.showToast("非公開にしました", 'info');
         } catch(e) {
             console.error("非公開化エラー:", e);
         }
@@ -249,9 +282,9 @@ export const shareDailyReport = async (targetDate, silent = false) => {
 
     try {
         await setDoc(reportRef, reportData);
-        if(!silent) alert("公開しました！");
+        if(!silent) UIManager.showToast("公開しました！", 'success');
     } catch (e) {
-        if(!silent) alert("公開失敗: " + e.message);
+        if(!silent) UIManager.showToast("公開失敗: " + e.message, 'error');
     }
 };
 
@@ -360,7 +393,6 @@ function renderLogsTab(reports, container) {
         
         const isMine = (State.user && l.author.uid === State.user.uid && l.id);
 
-        // === 表示用データ作成 (箱なし・テキスト強調版) ===
         const vehicleStr = l.vehicle ? l.vehicle : '--'; 
         const profileName = (l.profile && l.profile !== 'UNKNOWN' && l.profile !== 'TOWER 1') 
             ? CONSTANTS.PROFILES[l.profile] : '';

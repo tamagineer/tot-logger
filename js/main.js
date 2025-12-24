@@ -1,5 +1,5 @@
 // js/main.js
-import { onAuthStateChanged, getRedirectResult } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"; // ← getRedirectResultを追加
+import { onAuthStateChanged, getRedirectResult } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"; 
 import { auth } from "./firebase.js";
 import { CONSTANTS } from "./config.js";
 import { State } from "./state.js";
@@ -17,17 +17,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     UIManager.init();
     await fetchSpecialSchedules();
     
-    // 【追加】リダイレクトログインから戻ってきた場合の結果処理
-    // ログイン自体は onAuthStateChanged で処理されますが、エラーハンドリングのために必要です
+    // リダイレクトログイン結果のハンドリング
     getRedirectResult(auth)
         .then((result) => {
             if (result) {
                 console.log("Redirect login success:", result.user.displayName);
+                UIManager.showToast("ログインしました", 'success');
             }
         })
         .catch((error) => {
             console.error("Login Failed:", error);
-            alert("ログインに失敗しました。\n" + error.message);
+            UIManager.showToast("ログイン失敗: " + error.message, 'error');
         });
 
     onAuthStateChanged(auth, (user) => {
@@ -67,14 +67,28 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // === Event Listeners ===
     document.getElementById('login-btn').addEventListener('click', loginApp);
-    document.getElementById('logout-btn').addEventListener('click', logoutApp);
+    
+    document.getElementById('logout-btn').addEventListener('click', async () => {
+        if (await UIManager.showConfirmModal(CONSTANTS.MESSAGES.confirmLogout)) {
+            logoutApp();
+        }
+    });
 
     document.getElementById('visit-date').addEventListener('change', handleDateChange);
     document.getElementById('btn-count-minus').addEventListener('click', () => updateCount(-1));
     document.getElementById('btn-count-plus').addEventListener('click', () => updateCount(1));
 
     document.getElementById('time-widget').addEventListener('click', toggleTimeWidget);
-    document.getElementById('visit-time').addEventListener('click', (e) => e.stopPropagation());
+    
+    // 【変更】時刻入力欄をクリックした際、強制的にピッカーを表示して挙動を統一する
+    document.getElementById('visit-time').addEventListener('click', (e) => {
+        e.stopPropagation();
+        const input = e.target;
+        if (input.showPicker) {
+            input.showPicker();
+        }
+    });
+    
     document.querySelector('.time-clear-btn').addEventListener('click', clearTimeWidget);
 
     document.getElementById('special-mode-check').addEventListener('change', handleModeChange);
@@ -108,14 +122,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // === Functions used by Logic / Events ===
 
-function handleDateChange() {
+async function handleDateChange() {
     const dateVal = document.getElementById('visit-date').value;
     if (Logic.isSpecialPeriod(dateVal)) {
         document.getElementById('special-mode-check').checked = true;
     } else {
         document.getElementById('special-mode-check').checked = false;
     }
-    if (confirm("日付を変更しますか？\n（入力中の内容はリセットされます）")) {
+    if (await UIManager.showConfirmModal(CONSTANTS.MESSAGES.confirmReset)) {
         resetInput(true); 
     }
 }
@@ -130,12 +144,24 @@ function selectFloor(v) {
     UIManager.updateAll();
 }
 
-function selectTour(val) {
+async function selectTour(val) {
     const dailyState = Logic.calculateDailyState(UIManager.els.date.value);
-    if (State.editingId === null && dailyState.suspended[val] && State.input.tour !== val) {
-        if (!confirm(`【確認】\nTour ${val} は本日、運営休止が記録されています。\n運転再開として記録しますか？`)) return;
-        const idx = State.input.suspendedTours.indexOf(val);
-        if (idx > -1) State.input.suspendedTours.splice(idx, 1);
+    
+    if (State.editingId === null && State.input.tour !== val) {
+        // 1. 手元の入力で「運営休止」に設定されている場合
+        if (State.input.suspendedTours.includes(val)) {
+            if (!await UIManager.showConfirmModal(`Tour ${val} の休止設定を解除して、\n搭乗ツアーとして選択しますか？`)) return;
+            // 解除して続行
+            const idx = State.input.suspendedTours.indexOf(val);
+            if (idx > -1) State.input.suspendedTours.splice(idx, 1);
+        }
+        // 2. 過去の履歴（DB）から「運営休止」と判断される場合
+        else if (dailyState.suspended[val]) {
+            if (!await UIManager.showConfirmModal(`Tour ${val} は「運営休止」と記録されています。\n運転再開として記録しますか？`)) return;
+            // 念のため入力リストからも削除
+            const idx = State.input.suspendedTours.indexOf(val);
+            if (idx > -1) State.input.suspendedTours.splice(idx, 1);
+        }
     }
     
     State.input.tour = (State.input.tour === val) ? null : val; 
@@ -152,24 +178,31 @@ function selectTour(val) {
     UIManager.updateAll();
 }
 
-function selectProfile(val) {
+async function selectProfile(val) {
     if (State.editingId === null && State.input.tour) {
         const dailyState = Logic.calculateDailyState(UIManager.els.date.value);
         const established = dailyState.shaftHistory[State.input.tour];
         if (established && established !== 'UNKNOWN' && established !== val) {
             const oldN = CONSTANTS.PROFILES[established];
             const newN = CONSTANTS.PROFILES[val];
-            if (!confirm(`【矛盾】\nTour ${State.input.tour} は「${oldN}」として記録済です。\n「${newN}」に変更しますか？`)) return;
+            if (!await UIManager.showConfirmModal(`Tour ${State.input.tour} は「${oldN}」として記録済みです。\n「${newN}」に変更しますか？`)) return;
         }
     }
     State.input.profile = val; 
     UIManager.updateAll();
 }
 
-function toggleSuspend(tourName) {
-    const s = State.input; const index = s.suspendedTours.indexOf(tourName);
+async function toggleSuspend(tourName) {
+    const s = State.input; 
+    const index = s.suspendedTours.indexOf(tourName);
+
     if (index === -1) {
-        if(confirm(`Tour ${tourName} を運営休止にしますか？`)) s.suspendedTours.push(tourName);
+        // 現在選択中のツアーを休止しようとした場合の競合チェック
+        if (s.tour === tourName) {
+            if (!await UIManager.showConfirmModal(`現在選択中の Tour ${tourName} を\n運営休止にしますか？`)) return;
+        }
+        
+        if(await UIManager.showConfirmModal(`Tour ${tourName} を運営休止にしますか？`)) s.suspendedTours.push(tourName);
     } else {
         s.suspendedTours.splice(index, 1);
     }
@@ -177,7 +210,6 @@ function toggleSuspend(tourName) {
 }
 
 function toggleTimeWidget(e) {
-    if (State.isTimeInputVisible) return;
     activateTimeInput();
 }
 function clearTimeWidget(e) {
@@ -203,12 +235,12 @@ export function deactivateTimeInput() {
     UIManager.updateAll();
 }
 
-function handleModeChange() {
+async function handleModeChange() {
     const isON = document.getElementById('special-mode-check').checked;
     if (isON) {
         const dateVal = document.getElementById('visit-date').value;
         if (!Logic.isSpecialPeriod(dateVal)) {
-            if (!confirm(CONSTANTS.MESSAGES.specialOnCaution)) {
+            if (!await UIManager.showConfirmModal(CONSTANTS.MESSAGES.specialOnCaution)) {
                 document.getElementById('special-mode-check').checked = false;
             }
         }
@@ -270,10 +302,10 @@ function switchSharedTab(tabName) {
 }
 
 // === Global Expose ===
-window.editLog = (id, fromShared = false) => {
+window.editLog = async (id, fromShared = false) => {
     const log = State.logs.find(l => l.id === id); 
     if (!log) {
-        alert("【エラー】\nこの記録の元データが端末内に見つかりませんでした。\n（既に削除されているか、データの不整合が起きている可能性があります）");
+        UIManager.showToast("【エラー】この記録の元データが見つかりません", 'error');
         return;
     }
 
@@ -288,7 +320,7 @@ window.editLog = (id, fromShared = false) => {
             : CONSTANTS.MESSAGES.confirmEdit;
     }
 
-    if (!confirm(confirmMsg)) return;
+    if (!await UIManager.showConfirmModal(confirmMsg)) return;
 
     State.editingId = id; 
     State.input = { ...log, suspendedTours: log.suspended || [] };
@@ -309,7 +341,7 @@ window.deleteLog = deleteLog;
 window.shareDailyReport = shareDailyReport;
 window.closeSharedDbModal = closeSharedDbModal;
 
-window.handleVehicleClick = (num, isCaution, currentRoomKey, assigned, assignments) => {
+window.handleVehicleClick = async (num, isCaution, currentRoomKey, assigned, assignments) => {
     if (State.input.vehicle == num) {
         State.input.vehicle = null; 
         UIManager.updateAll();
@@ -317,11 +349,11 @@ window.handleVehicleClick = (num, isCaution, currentRoomKey, assigned, assignmen
     }
     if (State.editingId === null && isCaution) {
         if (num === 7) {
-            if(!confirm(CONSTANTS.MESSAGES.vehicle7Caution)) return;
+            if(!await UIManager.showConfirmModal(CONSTANTS.MESSAGES.vehicle7Caution)) return;
         } else if (assigned && assigned != num) {
-            if(!confirm(`【確認】\nこの部屋は既に No.${assigned} で記録済です。\nNo.${num} に上書きしますか？`)) return;
+            if(!await UIManager.showConfirmModal(`この部屋は No.${assigned} で記録済みです。\nNo.${num} に上書きしますか？`)) return;
         } else {
-            if(!confirm(`【確認】\n機体 No.${num} は本日他の部屋で記録されています。\n移動したとみなして記録しますか？`)) return;
+            if(!await UIManager.showConfirmModal(`機体 No.${num} は他の部屋で記録済みです。\n移動したとみなして記録しますか？`)) return;
         }
     }
     
@@ -335,12 +367,14 @@ window.handleVehicleClick = (num, isCaution, currentRoomKey, assigned, assignmen
     UIManager.updateAll();
 };
 
-window.handlePublishToggle = (dateStr, checkbox) => {
+window.handlePublishToggle = async (dateStr, checkbox) => {
     const isTurningOn = checkbox.checked;
     const message = isTurningOn ? CONSTANTS.MESSAGES.confirmPublish : CONSTANTS.MESSAGES.confirmUnpublish;
 
-    if (!confirm(message)) {
-        checkbox.checked = !isTurningOn;
+    const isOk = await UIManager.showConfirmModal(message);
+    
+    if (!isOk) {
+        checkbox.checked = !isTurningOn; // 元に戻す
         return;
     }
     togglePublish(dateStr, isTurningOn);

@@ -1,0 +1,10 @@
+[33m2cedf86[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Fix mobile sign-in, optimize layout, and revert timepicker
+[33m9262930[m Fix mobile sign-in, optimize layout, and revert timepicker
+[33m229d69d[m Fix mobile sign-in, optimize layout, and revert timepicker
+[33m04d051e[m Revert Timepicker to standard input and refine toggle animation
+[33m994c476[m Revert Timepicker and refine UI style
+[33mabfe95a[m Fix suspended status color specificity
+[33mbe5ec9a[m Add firestore.rules and update config
+[33m2dc7789[m Implement dynamic config loading from Firestore
+[33m61e1b45[m Configure Firebase Hosting and GitHub Actions
+[33m198c97e[m Initial commit for Phase 2

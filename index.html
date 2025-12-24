@@ -174,6 +174,7 @@
 
         </main>
 
+        <!-- 既存の共有DBモーダル -->
         <div id="shared-db-modal" class="modal-overlay">
             <div class="modal-content">
                 <div class="modal-header">
@@ -202,8 +203,22 @@
             </div>
         </div>
 
+        <!-- 【追加】カスタム確認モーダル -->
+        <div id="custom-confirm-modal" class="modal-overlay" style="z-index: 2000;">
+            <div class="modal-content confirm-modal-content">
+                <div class="confirm-body">
+                    <span class="material-symbols-outlined confirm-icon">help</span>
+                    <p id="confirm-message" class="confirm-text"></p>
+                </div>
+                <div class="confirm-actions">
+                    <button id="confirm-cancel-btn" class="btn-text">キャンセル</button>
+                    <button id="confirm-ok-btn" class="btn-primary">OK</button>
+                </div>
+            </div>
+        </div>
+
         <footer class="app-footer">
-            <p>TOT Logger v4.10.1</p>
+            <p>TOT Logger v4.11.0</p>
             <p>Created by Tamas (@tamagineer)</p>
             <p class="disclaimer">This is an unofficial fan tool.</p>
         </footer>

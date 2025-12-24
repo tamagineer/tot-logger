@@ -73,8 +73,18 @@ export const UIManager = {
             const btn = document.getElementById(`tour-btn-${tour}`);
             if(btn) {
                 btn.classList.toggle('selected', s.tour === tour);
-                if (dailyState.suspended[tour]) btn.classList.add('btn-caution');
-                else btn.classList.remove('btn-caution');
+                
+                // 【変更】運営休止ツアーの場合のスタイル適用
+                if (s.suspendedTours.includes(tour)) {
+                    btn.classList.add('btn-suspended-view');
+                    btn.classList.remove('btn-caution'); // 点線スタイル優先
+                } else {
+                    btn.classList.remove('btn-suspended-view');
+                    // 以前のロジック（caution）は維持するか要検討だが、
+                    // シンプルに「選択中の矛盾」などはbtn-cautionで表現
+                    if (dailyState.suspended[tour]) btn.classList.add('btn-caution');
+                    else btn.classList.remove('btn-caution');
+                }
             }
         });
 
@@ -160,8 +170,6 @@ export const UIManager = {
 
         let html = '';
         const selectedDate = this.els.date.value;
-        
-        // 【変更】純粋な日付降順ソートに変更 (選択日を特別扱いしない)
         const sortedDates = Object.keys(groups).sort((a, b) => b.localeCompare(a));
 
         sortedDates.forEach(date => {
@@ -171,11 +179,14 @@ export const UIManager = {
             const isPublished = State.publishedDates.has(date);
             const checkedAttr = isPublished ? 'checked' : '';
             const publishLabel = isPublished ? '公開中' : '非公開';
-
-            // 【変更】選択中の日付の場合、クラスを追加して強調する（自動展開は廃止）
             const highlightClass = (date === selectedDate) ? 'current-date-row' : '';
+            
+            // 【変更】State.openHistoryDates に含まれている場合は open 属性を付与
+            const isOpen = State.openHistoryDates.has(date);
+            const openAttr = isOpen ? 'open' : '';
 
-            html += `<details class="${highlightClass}">
+            // data-date属性を追加して識別可能にする
+            html += `<details class="${highlightClass}" ${openAttr} data-date="${date}">
                 <summary>
                     <span class="material-symbols-outlined arrow-icon-left">chevron_right</span>
                     <div class="summary-info">
@@ -238,6 +249,79 @@ export const UIManager = {
             html += `</div></div></details>`;
         });
         div.innerHTML = html;
+
+        // 【追加】手動での開閉イベントを監視してStateを更新
+        div.querySelectorAll('details').forEach(el => {
+            el.addEventListener('toggle', () => {
+                const date = el.dataset.date;
+                if (el.open) State.openHistoryDates.add(date);
+                else State.openHistoryDates.delete(date);
+            });
+        });
+    },
+
+    // === 【追加】トースト通知を表示 ===
+    showToast(message, type = 'normal') {
+        const existing = document.querySelector('.toast');
+        if (existing) existing.remove();
+
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        if (type === 'success') toast.classList.add('toast-success');
+        
+        let icon = 'check_circle';
+        if (type === 'error') icon = 'error';
+        if (type === 'info') icon = 'info';
+
+        toast.innerHTML = `<span class="material-symbols-outlined icon-sm">${icon}</span><span>${message}</span>`;
+        document.body.appendChild(toast);
+
+        requestAnimationFrame(() => {
+            toast.classList.add('show');
+        });
+
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    },
+
+    // === 【追加】カスタム確認モーダル（非同期で待機） ===
+    async showConfirmModal(message) {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('custom-confirm-modal');
+            const msgEl = document.getElementById('confirm-message');
+            const okBtn = document.getElementById('confirm-ok-btn');
+            const cancelBtn = document.getElementById('confirm-cancel-btn');
+
+            if (!modal || !msgEl || !okBtn || !cancelBtn) {
+                // DOM要素が見つからない場合のフォールバック
+                resolve(confirm(message));
+                return;
+            }
+
+            msgEl.innerText = message;
+            modal.classList.add('active');
+
+            const cleanup = () => {
+                okBtn.removeEventListener('click', onOk);
+                cancelBtn.removeEventListener('click', onCancel);
+                modal.classList.remove('active');
+            };
+
+            const onOk = () => {
+                cleanup();
+                resolve(true);
+            };
+
+            const onCancel = () => {
+                cleanup();
+                resolve(false);
+            };
+
+            okBtn.addEventListener('click', onOk);
+            cancelBtn.addEventListener('click', onCancel);
+        });
     }
 };
 

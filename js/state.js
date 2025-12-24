@@ -6,8 +6,11 @@ export const State = {
     // Firestoreから取得した設定データ
     specialSchedules: [], 
 
-    // 【追加】自分が公開している日付のセット
+    // 自分が公開している日付のセット
     publishedDates: new Set(),
+    
+    // 【追加】マイログで現在開いているアコーディオンの日付セット
+    openHistoryDates: new Set(),
     
     input: { 
         count: 1, floor: null, tour: null, vehicle: null, 
