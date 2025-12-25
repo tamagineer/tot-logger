@@ -158,11 +158,13 @@ export const UIManager = {
         const s = State.input;
         const dailyState = Logic.calculateDailyState(this.els.date.value, State.editingId);
 
+        // フロアボタン
         document.querySelectorAll('.floor-btn').forEach(btn => {
             const val = parseInt(btn.dataset.floor || btn.innerText);
             btn.classList.toggle('selected', s.floor === val);
         });
 
+        // ツアーボタン
         ['A', 'B', 'C'].forEach(tour => {
             const btn = document.getElementById(`tour-btn-${tour}`);
             if(btn) {
@@ -179,11 +181,19 @@ export const UIManager = {
             }
         });
 
-        const isSpecial = this.els.specialCheck.checked;
-        let establishedProfile = null;
+        // 【変更】プロファイルボタンのスタイル制御
+        let cautionList = [];
         if (s.tour) {
-            const hist = dailyState.shaftHistory[s.tour];
-            if (hist && hist !== 'UNKNOWN') establishedProfile = hist;
+            // ツアー選択済みなら Logic に判定させる
+            const analysis = Logic.analyzeProfileStatus(this.els.date.value, s.tour);
+            cautionList = analysis.cautionProfiles;
+        } else {
+            // ツアー未選択時は日付のみで簡易判定（履歴考慮なし）
+            const type = Logic.getProgramType(this.els.date.value);
+            if (type === 'L13') cautionList = ['TOWER 1', 'TOWER 3', 'UNKNOWN'];
+            else if (type === 'SHADOW') cautionList = ['TOWER 1', 'TOWER 2', 'UNKNOWN'];
+            else if (type === 'NORMAL') cautionList = ['TOWER 2', 'TOWER 3', 'UNKNOWN'];
+            // UNLIMITEDは警告なし
         }
 
         document.querySelectorAll('.profile-btn').forEach(btn => {
@@ -192,17 +202,15 @@ export const UIManager = {
             
             btn.classList.toggle('selected', s.profile === btnVal);
 
-            let isCaution = false;
-            if (establishedProfile) {
-                if (btnVal !== establishedProfile) isCaution = true;
+            // 警告リストに含まれる場合は caution スタイル適用
+            if (cautionList.includes(btnVal)) {
+                btn.classList.add('btn-caution');
             } else {
-                if (isSpecial) isCaution = false;
-                else if (btnVal !== 'TOWER 1') isCaution = true;
+                btn.classList.remove('btn-caution');
             }
-            if (isCaution) btn.classList.add('btn-caution');
-            else btn.classList.remove('btn-caution');
         });
 
+        // 休止ボタン
         ['A', 'B', 'C'].forEach(tour => {
             const btn = document.getElementById(`suspend-btn-${tour}`);
             if(btn) btn.classList.toggle('active', s.suspendedTours.includes(tour));

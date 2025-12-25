@@ -112,11 +112,11 @@ const switchSharedTab = (tabName) => {
 
 const handleDateChange = async () => {
     const dateVal = document.getElementById('visit-date').value;
-    if (Logic.isSpecialPeriod(dateVal)) {
-        document.getElementById('special-mode-check').checked = true;
-    } else {
-        document.getElementById('special-mode-check').checked = false;
-    }
+    
+    // 【変更】チェックボックスの状態をプログラム判定結果に同期
+    const type = Logic.getProgramType(dateVal);
+    document.getElementById('special-mode-check').checked = (type !== 'NORMAL');
+    
     if (await UIManager.showConfirmModal(CONSTANTS.MESSAGES.confirmReset)) {
         UIManager.resetInput(true); 
     }
@@ -147,29 +147,45 @@ const selectTour = async (val) => {
             if (idx > -1) State.input.suspendedTours.splice(idx, 1);
         }
     }
+
+    if (State.editingId === null && State.input.tour !== val) {
+        if (State.input.suspendedTours.includes(val)) {
+            if (!await UIManager.showConfirmModal(`Tour ${val} の休止設定を解除して、\n搭乗ツアーとして選択しますか？`)) return;
+            const idx = State.input.suspendedTours.indexOf(val);
+            if (idx > -1) State.input.suspendedTours.splice(idx, 1);
+        }
+        else if (dailyState.suspended[val]) {
+            if (!await UIManager.showConfirmModal(`Tour ${val} は「運営休止」と記録されています。\n運転再開として記録しますか？`)) return;
+            const idx = State.input.suspendedTours.indexOf(val);
+            if (idx > -1) State.input.suspendedTours.splice(idx, 1);
+        }
+    }
     
     State.input.tour = (State.input.tour === val) ? null : val; 
     
+    // 【変更】ツアー選択時、推奨プロファイルを自動セット
     if (State.input.tour) {
-        const isSpecial = document.getElementById('special-mode-check').checked;
-        const histProfile = dailyState.shaftHistory[State.input.tour];
-        if (histProfile && histProfile !== 'UNKNOWN') {
-            State.input.profile = histProfile;
-        } else {
-            State.input.profile = isSpecial ? 'UNKNOWN' : 'TOWER 1';
+        const analysis = Logic.analyzeProfileStatus(UIManager.els.date.value, State.input.tour);
+        
+        // 新規作成時、またはプロファイル未選択時は推奨値をセット
+        if (State.editingId === null || !State.input.profile) {
+             State.input.profile = analysis.defaultProfile;
         }
     }
     UIManager.updateAll();
 };
 
 const selectProfile = async (val) => {
+    // 【変更】推奨外プロファイル選択時の警告
     if (State.editingId === null && State.input.tour) {
-        const dailyState = Logic.calculateDailyState(UIManager.els.date.value);
-        const established = dailyState.shaftHistory[State.input.tour];
-        if (established && established !== 'UNKNOWN' && established !== val) {
-            const oldN = CONSTANTS.PROFILES[established];
-            const newN = CONSTANTS.PROFILES[val];
-            if (!await UIManager.showConfirmModal(`Tour ${State.input.tour} は「${oldN}」として記録済みです。\n「${newN}」に変更しますか？`)) return;
+        const analysis = Logic.analyzeProfileStatus(UIManager.els.date.value, State.input.tour);
+        
+        if (analysis.cautionProfiles.includes(val)) {
+            const targetName = CONSTANTS.PROFILES[val];
+            // 警告メッセージを表示
+            if (!await UIManager.showConfirmModal(`この期間（または履歴）の推奨設定とは異なります。\n「${targetName}」を選択しますか？`)) {
+                return; // キャンセルなら変更しない
+            }
         }
     }
     State.input.profile = val; 

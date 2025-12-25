@@ -18,24 +18,90 @@ export const Logic = {
         return `${h}:${m}`;
     },
 
-    isSpecialPeriod(dateStr) {
-        if (!dateStr) return false;
-        const d = new Date(dateStr);
-        const y = d.getFullYear();
-        
+    /**
+     * 日付からプログラムタイプを判定
+     * 戻り値: 'L13' | 'SHADOW' | 'UNLIMITED' | 'NORMAL'
+     */
+    getProgramType(dateStr) {
+        if (!dateStr) return 'NORMAL';
+
         // Firestoreから読み込んだスケジュールを使用
         const schedules = State.specialSchedules || [];
         
-        const def = schedules.find(s => s.year === y);
-        if (def) {
-            const startStr = `${y}-${def.start}`;
-            const endStr = `${y}-${def.end}`;
-            return (dateStr >= startStr && dateStr <= endStr);
+        // 1. 期間一致チェック
+        const matched = schedules.find(s => dateStr >= s.start && dateStr <= s.end);
+        if (matched) {
+            return matched.type; 
         }
+
+        // 2. ルールCのフォールバック (設定がない年の 1月〜4月 は UNLIMITED 扱い)
+        const d = new Date(dateStr);
+        const year = d.getFullYear();
+        const month = d.getMonth(); // 0:Jan ... 3:Apr
         
-        // フォールバック（定義がない年は1月〜3月をデフォルトとする）
-        const m = d.getMonth();
-        return (m >= 0 && m <= 2); 
+        // その年のスケジュール定義が存在するか確認
+        const hasYearDef = schedules.some(s => s.start.startsWith(String(year)));
+        
+        // 定義がなく、かつ1月〜4月ならアンリミテッド扱い
+        if (!hasYearDef && month >= 0 && month <= 3) {
+            return 'UNLIMITED';
+        }
+
+        return 'NORMAL';
+    },
+
+    // 既存の isSpecialPeriod は、UIのトグルスイッチ表示用などに利用
+    isSpecialPeriod(dateStr) {
+        return this.getProgramType(dateStr) !== 'NORMAL';
+    },
+
+    /**
+     * プロファイル選択のデフォルト値と警告対象を決定
+     */
+    analyzeProfileStatus(dateStr, tour) {
+        const dailyState = this.calculateDailyState(dateStr, State.editingId);
+        
+        // 【優先ルール】同日・同ツアーの履歴がある場合
+        const established = dailyState.shaftHistory[tour];
+        if (established && established !== 'UNKNOWN') {
+            return {
+                defaultProfile: established,
+                // 確定済み以外はすべて警告対象
+                cautionProfiles: Object.keys(CONSTANTS.PROFILES).filter(k => k !== established)
+            };
+        }
+
+        const type = this.getProgramType(dateStr);
+        
+        // ルールA: Level 13
+        if (type === 'L13') {
+            return {
+                defaultProfile: 'TOWER 2', // Level 13
+                cautionProfiles: ['TOWER 1', 'TOWER 3', 'UNKNOWN']
+            };
+        }
+
+        // ルールB: Shadow
+        if (type === 'SHADOW') {
+            return {
+                defaultProfile: 'TOWER 3', // Shadow
+                cautionProfiles: ['TOWER 1', 'TOWER 2', 'UNKNOWN']
+            };
+        }
+
+        // ルールC: Unlimited
+        if (type === 'UNLIMITED') {
+            return {
+                defaultProfile: 'UNKNOWN', // どれが来るか不明
+                cautionProfiles: [] // どれを選んでも警告なし
+            };
+        }
+
+        // ルールD: 通常 (NORMAL)
+        return {
+            defaultProfile: 'TOWER 1', // 通常版
+            cautionProfiles: ['TOWER 2', 'TOWER 3', 'UNKNOWN']
+        };
     },
 
     calculateDailyState(dateVal, excludeId = null) {
@@ -57,7 +123,11 @@ export const Logic = {
 
             if (log.profile === 'TOWER 2' || log.profile === 'TOWER 3') modeFixed = true;
             else if (log.profile === 'TOWER 1') { if (modeFixed === null) modeFixed = false; }
-            if (log.tour && log.profile !== 'UNKNOWN') shaftHistory[log.tour] = log.profile;
+            
+            // ツアーごとの確定プロファイル履歴
+            if (log.tour && log.profile !== 'UNKNOWN') {
+                shaftHistory[log.tour] = log.profile;
+            }
         });
 
         return {
