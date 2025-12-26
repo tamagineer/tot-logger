@@ -23,20 +23,31 @@
            1. VARIABLES & BASE
            ========================================= */
         :root {
+            /* Backgrounds */
             --c-bg-body: #000000;
             --c-bg-card: #111111;
             --c-bg-input: #1a1a1a;
             --c-bg-btn: #000000;
             --c-bg-btn-active: #ffffff;
+            --c-bg-element: #222222;
+            --c-bg-hover: #333333;
+            
+            /* Text */
             --c-text-main: #e0e0e0;
             --c-text-sub: #888888;
             --c-text-inverse: #000000;
             --c-text-accent: #ffffff;
+            --c-text-muted: #666666;
+            
+            /* Borders */
             --c-border: #333333;
             --c-border-light: #444444;
+            
+            /* Functional */
             --c-caution: #ff5555;
             --c-caution-bg: #221111;
             
+            /* Layout & Spacing */
             --radius-sm: 6px;
             --radius-md: 12px;
             --radius-pill: 24px;
@@ -44,7 +55,6 @@
             --font-main: 'Noto Sans JP', sans-serif;
             --font-display: "stencil-std", sans-serif;
             
-            /* Spacing System */
             --space-xs: 8px;
             --space-sm: 16px;
             --space-md: 24px;
@@ -65,7 +75,7 @@
         body.editing-mode .data-manager { display: none; }
         body.editing-mode .data-manager-separator { display: none; }
 
-        header { padding: 10px 0 20px; }
+        header { padding: 0; }
         h1 {
             font-family: var(--font-display); font-size: 2.2rem; margin: 0 0 var(--space-md) 0;
             color: var(--c-text-accent); letter-spacing: 2px; border-bottom: 1px solid var(--c-border); padding-bottom: 20px;
@@ -75,7 +85,7 @@
            2. 共通コンポーネント
            ========================================= */
         .label {
-            font-size: 0.85rem; color: #bbb; margin-bottom: 8px; text-align: left; padding: 0; /* 左端揃え */ font-weight: bold;
+            font-size: 0.85rem; color: #bbb; margin-bottom: 8px; text-align: left; padding: 0; font-weight: bold;
             display: flex; justify-content: space-between; align-items: baseline;
             width: 100%; box-sizing: border-box;
             transition: color 0.3s;
@@ -95,15 +105,15 @@
 
         .btn.loading { opacity: 0.6; pointer-events: none; cursor: wait; }
         
-        /* 非推奨・注意・使用済み・休止ボタンのデザイン統一（破線・グレー） */
+        /* 非推奨・注意・使用済み・休止ボタンのデザイン統一 */
         .btn-caution, .btn-suspended-view, .btn-used { 
             border-style: dashed !important; 
-            border-color: #444 !important; 
-            color: #666 !important; 
+            border-color: var(--c-border-light) !important; 
+            color: var(--c-text-muted) !important; 
         }
         .btn-caution:hover, .btn-suspended-view:hover, .btn-used:hover {
-            color: #888 !important;
-            border-color: #666 !important;
+            color: var(--c-text-sub) !important;
+            border-color: var(--c-text-sub) !important;
         }
         .btn-caution.selected, .btn-suspended-view.selected, .btn-used.selected { 
             background-color: #ccc !important; 
@@ -116,9 +126,10 @@
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
         
+        /* [修正] セクションのマージン設定 */
         .config-section, .input-section { margin-bottom: var(--space-lg); }
         .data-manager { margin-bottom: var(--space-lg); }
-        .data-manager-separator { border-top: 1px dashed #333; padding-top: var(--space-lg); }
+        .data-manager-separator { border-top: 1px dashed var(--c-border); padding-top: var(--space-lg); }
         
         .input-block { 
             margin-bottom: var(--space-md); 
@@ -142,37 +153,39 @@
            3. ユーザー設定・日付エリア
            ========================================= */
         .user-settings-area {
-            padding: 0; margin-bottom: var(--space-md);
+            padding: 0; margin-bottom: 0; 
             background: transparent; border: none;
-            height: auto; min-height: 60px; display: flex; align-items: center; justify-content: center; box-sizing: border-box;
+            height: auto; 
+            min-height: 50px; 
+            display: flex; align-items: center; justify-content: center; box-sizing: border-box;
         }
         .user-settings-area.logged-in { justify-content: space-between; padding: 0 4px; }
         #login-container { width: 100%; }
         .sign-in-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 0; }
         #user-info { display: flex; justify-content: space-between; align-items: center; width: 100%; }
         .user-info-left { display: flex; align-items: center; gap: 12px; }
-        .user-icon-img { width: 40px; height: 40px; border-radius: 50%; border: 1px solid #555; object-fit: cover; }
+        .user-icon-img { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--c-border-light); object-fit: cover; }
         .user-text { text-align: left; line-height: 1.2; }
-        #user-name { font-weight: bold; font-size: 0.95rem; color: #fff; }
-        #user-screen-name { font-size: 0.75rem; color: #888; }
+        #user-name { font-weight: bold; font-size: 0.95rem; color: var(--c-text-accent); }
+        #user-screen-name { font-size: 0.75rem; color: var(--c-text-sub); }
         .logout-icon-btn {
-            background: transparent; border: none; color: #666;
+            background: transparent; border: none; color: var(--c-text-muted);
             width: 40px; height: 40px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
             cursor: pointer; transition: all 0.2s;
         }
-        .logout-icon-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+        .logout-icon-btn:hover { background: rgba(255,255,255,0.1); color: var(--c-text-accent); }
 
         .date-counter-area { 
             background: var(--c-bg-card); padding: 20px; 
             border-radius: var(--radius-md); border: 1px solid var(--c-border); 
-            margin-bottom: var(--space-lg); 
+            margin-bottom: var(--space-md); /* 入力セクション内での余白 */
             display: flex; flex-direction: column; gap: 15px;
         }
         .date-row { text-align: center; }
         .date-row input[type="date"] { 
             width: 100%; max-width: 100%; box-sizing: border-box;
-            background: #000; color: #fff; border: 1px solid #444; 
+            background: var(--c-bg-body); color: var(--c-text-accent); border: 1px solid var(--c-border-light); 
             border-radius: var(--radius-sm); font-size: 1.1rem; font-weight: bold; 
             text-align: center; padding: 12px; color-scheme: dark; font-family: var(--font-main); 
         }
@@ -180,37 +193,37 @@
         .counter-ui { display: flex; align-items: center; justify-content: center; gap: 20px; }
         .counter-btn { 
             width: 48px; height: 48px; border-radius: 50%; 
-            background: var(--c-bg-input); color: #fff; border: 1px solid #444; 
+            background: var(--c-bg-input); color: var(--c-text-accent); border: 1px solid var(--c-border-light); 
             font-size: 1.4rem; cursor: pointer; transition: 0.2s; 
             display: flex; align-items: center; justify-content: center;
         }
-        .counter-btn:hover { background: #333; border-color: #888; }
-        .counter-display { font-size: 2rem; font-weight: 700; min-width: 80px; color: #fff; }
-        .unit { font-size: 0.9rem; color: #888; font-weight: normal; margin-left: 4px; }
+        .counter-btn:hover { background: var(--c-bg-hover); border-color: var(--c-text-sub); }
+        .counter-display { font-size: 2rem; font-weight: 700; min-width: 80px; color: var(--c-text-accent); }
+        .unit { font-size: 0.9rem; color: var(--c-text-sub); font-weight: normal; margin-left: 4px; }
 
         .time-section-fixed { display: flex; justify-content: center; align-items: center; height: 40px; }
         .time-widget {
             position: relative; background: #0a0a0a; border: 1px solid #444; border-radius: 20px;
             height: 34px; width: 130px; display: flex; align-items: center; justify-content: center;
-            cursor: pointer; overflow: hidden; transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1); color: #888;
+            cursor: pointer; overflow: hidden; transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1); color: var(--c-text-sub);
         }
-        .time-widget:hover { background: #222; border-color: #666; color: #fff; }
-        .time-widget.active { width: 160px; background: #222; border-color: #fff; color: #fff; cursor: default; }
+        .time-widget:hover { background: var(--c-bg-element); border-color: var(--c-text-muted); color: var(--c-text-accent); }
+        .time-widget.active { width: 160px; background: var(--c-bg-element); border-color: var(--c-text-accent); color: var(--c-text-accent); cursor: default; }
         .time-placeholder { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: bold; letter-spacing: 0.5px; white-space: nowrap; position: absolute; transition: opacity 0.2s; }
         .time-widget.active .time-placeholder { opacity: 0; pointer-events: none; }
         .time-editor { display: flex; align-items: center; gap: 5px; opacity: 0; pointer-events: none; transition: opacity 0.3s 0.1s; }
         .time-widget.active .time-editor { opacity: 1; pointer-events: auto; }
-        .time-editor input[type="time"] { background: transparent; border: none; color: #fff; font-size: 1rem; font-family: var(--font-main); width: 90px; text-align: center; padding: 0; outline: none; }
+        .time-editor input[type="time"] { background: transparent; border: none; color: var(--c-text-accent); font-size: 1rem; font-family: var(--font-main); width: 90px; text-align: center; padding: 0; outline: none; }
         .time-editor input[type="time"]::-webkit-calendar-picker-indicator { display: none; -webkit-appearance: none; }
-        .time-clear-btn { background: #444; border: none; color: #ccc; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; flex-shrink: 0; }
-        .time-clear-btn:hover { background: #666; color: #fff; }
+        .time-clear-btn { background: var(--c-border-light); border: none; color: var(--c-text-secondary); width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; flex-shrink: 0; }
+        .time-clear-btn:hover { background: var(--c-text-muted); color: var(--c-text-accent); }
         .time-clear-btn .material-symbols-outlined { font-size: 12px; }
 
         /* =========================================
            4. 入力エリア
            ========================================= */
         .status-bar-wrapper { margin-top: 15px; }
-        .status-bar { border: 1px solid var(--c-border); background: var(--c-bg-card); padding: 10px; border-radius: var(--radius-sm); font-weight: bold; color: #fff; font-size: 0.95rem; }
+        .status-bar { border: 1px solid var(--c-border); background: var(--c-bg-card); padding: 10px; border-radius: var(--radius-sm); font-weight: bold; color: var(--c-text-accent); font-size: 0.95rem; }
         .vehicle-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
         .vehicle-btn { height: 56px; font-size: 1.3rem; display: flex; justify-content: center; align-items: center; }
         
@@ -221,17 +234,26 @@
             border: 1px dashed var(--c-border); background: #0f0f0f;
             padding: 15px; border-radius: var(--radius-sm); margin-bottom: var(--space-md); 
         }
-        .suspension-area .label { color: #888; }
+        .suspension-area .label { color: var(--c-text-sub); }
         .suspend-btn-container { display: flex; justify-content: center; gap: 8px; }
-        .suspend-btn { flex: 1; padding: 10px; background: #000; border: 1px solid #444; color: #666; border-radius: var(--radius-sm); font-size: 0.85rem; cursor: pointer; transition: 0.2s; }
+        .suspend-btn { flex: 1; padding: 10px; background: var(--c-bg-body); border: 1px solid var(--c-border-light); color: var(--c-text-muted); border-radius: var(--radius-sm); font-size: 0.85rem; cursor: pointer; transition: 0.2s; }
         .suspend-btn.active { background: var(--c-caution-bg); border-color: var(--c-caution); color: var(--c-caution); font-weight: bold; }
         
         .memo-area { margin-bottom: var(--space-lg); }
-        .memo-area textarea { width: 100%; height: 80px; padding: 12px; background: var(--c-bg-card); color: #fff; border: 1px solid #444; border-radius: var(--radius-sm); resize: none; font-size: 0.95rem; box-sizing: border-box; font-family: var(--font-main); line-height: 1.5; }
-        .memo-area textarea:focus { border-color: #888; outline: none; }
+        .memo-area textarea { 
+            width: 100%; 
+            height: 80px; 
+            padding: 12px; 
+            background: var(--c-bg-card); color: var(--c-text-accent); 
+            border: 1px solid var(--c-border-light); border-radius: var(--radius-sm); 
+            resize: none; 
+            font-size: 0.95rem; box-sizing: border-box; font-family: var(--font-main); line-height: 1.5; 
+            display: block; 
+        }
+        .memo-area textarea:focus { border-color: var(--c-text-sub); outline: none; }
 
         .submit-btn { width: 100%; padding: 18px; background: #222; color: #fff; border: 1px solid #fff; font-weight: bold; font-size: 1.1rem; cursor: pointer; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
-        .cancel-btn { width: 100%; padding: 15px; margin-top: 15px; background: transparent; color: #888; border: 1px solid #444; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
+        .cancel-btn { width: 100%; padding: 15px; margin-top: 15px; background: transparent; color: var(--c-text-sub); border: 1px solid var(--c-border-light); border-radius: var(--radius-sm); cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
 
         /* =========================================
            5. 搭乗ログ & モーダル共通
@@ -240,14 +262,21 @@
             background: #222;
             border: 1px solid #444;
             border-radius: var(--radius-sm);
-            margin-bottom: 15px;
-            overflow: visible; /* Sticky対応のためvisibleに変更 */
+            margin-bottom: 0;
+            overflow: visible; 
             transition: background 0.2s;
         }
-        .main-accordion[open] { background: #1a1a1a; }
+        .main-accordion[open] { background: var(--c-bg-surface); }
         
+        /* マイログのコンテナ */
+        #history-log {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
         .menu-trigger-summary {
-            background: #222; padding: 16px 20px; 
+            background: var(--c-bg-element); padding: 16px 20px; 
             display: flex; justify-content: space-between; align-items: center; 
             cursor: pointer; list-style: none;
             border-radius: var(--radius-sm);
@@ -258,20 +287,19 @@
         }
 
         .menu-trigger-summary::-webkit-details-marker { display: none; }
-        .menu-trigger-summary:hover { background: #2a2a2a; }
+        .menu-trigger-summary:hover { background: var(--c-bg-hover); }
 
         .menu-title-group { display: flex; align-items: center; gap: 12px; }
-        .menu-title-ja { font-size: 1rem; font-weight: bold; color: #fff; }
+        .menu-title-ja { font-size: 1rem; font-weight: bold; color: var(--c-text-accent); }
         
-        .arrow-icon { color: #888; transition: transform 0.3s; font-size: 1.4rem; }
-        .main-accordion[open] > .menu-trigger-summary .arrow-icon { transform: rotate(180deg); color: #fff; }
+        .arrow-icon { color: var(--c-text-sub); transition: transform 0.3s; font-size: 1.4rem; }
+        .main-accordion[open] > .menu-trigger-summary .arrow-icon { transform: rotate(180deg); color: var(--c-text-accent); }
         
         .history-content-wrapper {
-            padding: 10px; /* 上下左右統一 */
-            background: #111;
+            padding: 10px; 
+            background: var(--c-bg-card);
             border-top: 1px solid #333;
-            /* 修正：日付別ブロックが1つある状態（未展開）と同じ高さに設定 */
-            min-height: 56px; 
+            min-height: 50px; 
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -280,31 +308,41 @@
         }
 
         .menu-trigger-card { 
-            background: #222; border: 1px solid #444; border-radius: var(--radius-sm); 
+            background: var(--c-bg-element); border: 1px solid #444; border-radius: var(--radius-sm); 
             padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; 
             cursor: pointer; margin-bottom: 15px; transition: background 0.2s; 
         }
-        .menu-trigger-card:hover { background: #2a2a2a; }
+        .menu-trigger-card:hover { background: var(--c-bg-hover); }
         
         details.daily-log { 
             background: var(--c-bg-card); 
             border: 1px solid var(--c-border); 
             border-radius: var(--radius-sm); 
-            margin-bottom: 10px; 
+            margin-bottom: 0;
             overflow: visible; 
             text-align: left; 
         }
-        details.daily-log:last-child { margin-bottom: 0; }
 
-        /* マイログの日付ヘッダーもStickyに */
         summary.daily-summary { 
             background: #1a1a1a; padding: 12px 15px; 
             cursor: pointer; font-weight: bold; 
-            display: flex; align-items: center; color: #fff; 
+            display: flex; align-items: center; color: var(--c-text-accent); 
             list-style: none; border-bottom: 1px solid #222; 
             justify-content: space-between;
-            position: sticky; top: 0; z-index: 5; /* 追加 */
+            position: sticky; top: 0; z-index: 5; 
+            border-top-left-radius: var(--radius-sm);
+            border-top-right-radius: var(--radius-sm);
         }
+        details.daily-log[open] > summary.daily-summary {
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+        details.daily-log:not([open]) > summary.daily-summary {
+            border-bottom-left-radius: var(--radius-sm);
+            border-bottom-right-radius: var(--radius-sm);
+            border-bottom: none;
+        }
+
         summary.daily-summary::-webkit-details-marker { display: none; }
         
         .summary-left { display: flex; align-items: center; gap: 10px; flex: 1; }
@@ -313,19 +351,19 @@
 
         .summary-info { text-align: left; }
         .summary-date { font-weight: bold; font-size: 1rem; }
-        .summary-count { font-size: 0.85rem; color: #aaa; margin-left: 8px; }
+        .summary-count { font-size: 0.85rem; color: var(--c-text-secondary); margin-left: 8px; }
         
         .summary-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
         
         .publish-status-text {
-            font-size: 0.75rem; color: #666; font-weight: normal; transition: color 0.2s;
+            font-size: 0.75rem; color: var(--c-text-muted); font-weight: normal; transition: color 0.2s;
         }
-        .publish-status-text.active { color: #fff; font-weight: bold; }
+        .publish-status-text.active { color: var(--c-text-accent); font-weight: bold; }
 
         .toggle-switch-sm { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
         .toggle-switch-sm input { opacity: 0; width: 0; height: 0; }
         .slider-sm { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 24px; border: 1px solid #555; }
-        .slider-sm:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: #888; transition: .4s; border-radius: 50%; }
+        .slider-sm:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: var(--c-text-sub); transition: .4s; border-radius: 50%; }
         input:checked + .slider-sm { background-color: #ddd; border-color: #fff; }
         input:checked + .slider-sm:before { transform: translateX(19px); background-color: #000; }
         
@@ -333,7 +371,7 @@
         .modal-overlay.active { display: flex; opacity: 1; }
         
         .modal-content { 
-            background: #111; width: 95%; 
+            background: #1a1a1a; width: 95%; 
             max-width: 600px; 
             height: 90%; border-radius: 8px; border: 1px solid #333; 
             display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
@@ -341,72 +379,121 @@
         
         .modal-header { padding: 15px 20px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
         .modal-title-group { display: flex; align-items: center; gap: 10px; }
-        .modal-header h2 { margin: 0; font-size: 1.2rem; color: #fff; font-family: var(--font-display); }
+        .modal-header h2 { margin: 0; font-size: 1.2rem; color: var(--c-text-accent); font-family: var(--font-display); }
         .modal-header-actions { display: flex; gap: 10px; }
         
         .header-icon-btn {
-            background: transparent; border: none; color: #888; width: 36px; height: 36px; border-radius: 50%;
+            background: transparent; border: none; color: var(--c-text-sub); width: 36px; height: 36px; border-radius: 50%;
             cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s;
         }
-        .header-icon-btn:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+        .header-icon-btn:hover { background: rgba(255, 255, 255, 0.1); color: var(--c-text-accent); }
 
-        .tab-group { display: flex; border-bottom: 1px solid #333; background: #1a1a1a; }
-        .tab-btn { flex: 1; padding: 12px; background: transparent; border: none; color: #888; font-weight: bold; cursor: pointer; transition: 0.2s; border-bottom: 3px solid transparent; font-size: 0.9rem; }
-        .tab-btn.active { color: #fff; border-bottom-color: #fff; background: #222; }
-        /* 上パディングを0にして、子要素のマージンで調整することでStickyヘッダーを綺麗に表示 */
-        .shared-list { flex: 1; overflow-y: auto; padding: 0 15px 15px 15px; }
+        .tab-group { display: flex; border-bottom: 1px solid #333; background: var(--c-bg-surface); }
+        .tab-btn { flex: 1; padding: 12px; background: transparent; border: none; color: var(--c-text-sub); font-weight: bold; cursor: pointer; transition: 0.2s; border-bottom: 3px solid transparent; font-size: 0.9rem; }
+        .tab-btn.active { color: var(--c-text-accent); border-bottom-color: var(--c-text-accent); background: var(--c-bg-element); }
+        
+        .shared-list { 
+            flex: 1; 
+            overflow-y: auto; 
+            padding: 0 10px 10px 10px; 
+        }
 
         /* === 運営状況テーブル（共有DB用） === */
-        /* テーブルヘッダーのSticky固定 */
-        .status-scroll-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 20px; border: 1px solid #333; border-radius: 4px; margin-top: 20px; /* リスト先頭マージン */ }
-        .shared-status-table { width: 100%; border-collapse: collapse; min-width: 500px; font-size: 0.75rem; }
-        .shared-status-table th, .shared-status-table td { border: 1px solid #333; padding: 6px; text-align: center; color: #eee; white-space: nowrap; }
+        .status-scroll-wrapper { 
+            overflow-x: auto; 
+            -webkit-overflow-scrolling: touch; 
+            margin-bottom: 20px; 
+            border: 1px solid var(--c-border); 
+            border-radius: 4px; 
+            margin-top: 10px;
+        }
+        .shared-status-table { 
+            width: 100%; border-collapse: collapse; 
+            font-size: 0.75rem; 
+        }
+        .shared-status-table th, .shared-status-table td { 
+            border: 1px solid var(--c-border); 
+            padding: 10px; 
+            text-align: center; color: var(--c-text-main); white-space: nowrap; 
+            background-color: var(--c-bg-card); 
+        }
         .shared-status-table th { 
-            background: #222; color: #aaa; font-weight: bold; 
+            background: var(--c-bg-element); color: var(--c-text-sub); font-weight: bold; 
             position: sticky; top: 0; z-index: 10;
         }
-        /* [修正] 固定列の対象をクラスで厳密に指定 */
-        .shared-status-table th.fixed-col-date { z-index: 15; left: 0; }
-        .shared-status-table td.fixed-col-date { position: sticky; left: 0; background: #151515; z-index: 2; font-weight: bold; color: #fff; border-right: 1px solid #444; }
-        .shared-status-table td.td-suspended { color: #ff5555; font-weight: bold; }
+        .shared-status-table th.fixed-col-date { 
+            z-index: 15; left: 0; 
+            width: 1px; white-space: nowrap;
+        }
+        .shared-status-table td.fixed-col-date { 
+            position: sticky; left: 0; background: var(--c-bg-card); 
+            z-index: 2; font-weight: bold; color: var(--c-text-accent); border-right: 1px solid var(--c-border-light); 
+            width: 1px; white-space: nowrap; 
+        }
+        .shared-status-table td.td-suspended { color: var(--c-caution); font-weight: bold; }
         
-        /* ユーザー名の表示一貫性 */
-        .author-info-mini { display: flex; align-items: center; gap: 6px; justify-content: center; min-width: 100px; max-width: 120px; }
-        .author-icon-mini { width: 22px; height: 22px; border-radius: 50%; border: 1px solid #444; flex-shrink: 0; object-fit: cover; }
-        .author-name-mini { font-size: 0.75rem; color: #ccc; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+        .shared-status-table .col-tour { width: 1px; white-space: nowrap; }
+
+        .shared-status-table .th-author { text-align: center; }
+        .author-cell { 
+            white-space: nowrap; 
+            vertical-align: middle; 
+            text-align: left; 
+            padding: 10px; 
+        }
+        .author-list { 
+            display: flex; 
+            flex-direction: row; 
+            gap: 4px; 
+            align-items: center; 
+            flex-wrap: wrap; 
+        }
+        
+        .author-info-mini { 
+            display: flex; 
+            align-items: center; 
+            gap: 6px; 
+            justify-content: flex-start;
+            min-width: 100px; 
+            max-width: 120px; 
+            padding-left: 4px; 
+        }
+        .author-icon-mini { width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--c-border-light); flex-shrink: 0; object-fit: cover; }
+        .author-name-mini { font-size: 0.75rem; color: var(--c-text-sub); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
 
         /* === 共有ログの日付見出し === */
-        /* Sticky固定とマージン調整 */
         .shared-date-header { 
-            font-size: 1.05rem; font-weight: bold; color: #fff; 
+            font-size: 1.05rem; font-weight: bold; color: var(--c-text-accent); 
             margin: 20px 0 0 0; 
-            padding: 10px 0 8px; /* パディング調整 */
-            border-bottom: 1px solid #333; 
+            padding: 10px 0 8px; 
+            border-bottom: 1px solid var(--c-border); 
             text-align: left; 
-            background-color: #111; /* Sticky時の背景色（透過防止） */
+            background-color: var(--c-bg-card); 
             position: sticky; top: 0; z-index: 5;
         }
+        
+        .shared-content-inner > details.daily-log:first-child { margin-top: 10px; }
 
         /* =========================================
            6. 確認モーダル & 入力モーダル
            ========================================= */
         .modal-content.confirm-modal-content {
             width: 85%; max-width: 360px; height: auto; min-height: auto;
-            background: #1a1a1a; border: 1px solid #444; border-radius: 12px;
+            background: #1a1a1a; border: 1px solid var(--c-border-light); border-radius: 12px;
             padding: 24px 20px; box-shadow: 0 15px 40px rgba(0,0,0,0.7);
             align-items: center; text-align: center;
         }
         .confirm-body { margin-bottom: 24px; display: flex; flex-direction: column; align-items: center; gap: 15px; }
-        .confirm-icon { font-size: 2.5rem; color: #ccc; }
-        .confirm-text { font-size: 0.95rem; color: #eee; line-height: 1.6; white-space: pre-wrap; margin: 0; font-family: var(--font-main); }
+        .confirm-icon { font-size: 2.5rem; color: var(--c-text-secondary); }
+        .confirm-text { font-size: 0.95rem; color: var(--c-text-primary); line-height: 1.6; white-space: pre-wrap; margin: 0; font-family: var(--font-main); }
         .confirm-actions { display: flex; gap: 12px; width: 100%; justify-content: center; }
 
         .btn-text {
-            background: transparent; border: 1px solid #444; color: #aaa;
+            background: transparent; border: 1px solid var(--c-border-light); color: #aaa;
             padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold;
             transition: 0.2s; flex: 1; max-width: 120px; font-family: var(--font-main);
         }
-        .btn-text:hover { background: #333; color: #fff; }
+        .btn-text:hover { background: var(--c-bg-hover); color: var(--c-text-accent); }
         .btn-primary {
             background: #e0e0e0; border: none; color: #000;
             padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold;
@@ -414,8 +501,8 @@
         }
         .btn-primary:hover { background: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.3); }
 
-        .modal-text-input { width: 200px; background: #222; border: 1px solid #555; color: #fff; padding: 10px; border-radius: 4px; font-size: 1.5rem; text-align: center; font-weight: bold; margin-top: 10px; outline: none; }
-        .modal-text-input:focus { border-color: #fff; background: #333; }
+        .modal-text-input { width: 200px; background: var(--c-bg-element); border: 1px solid var(--c-border-light); color: var(--c-text-accent); padding: 10px; border-radius: 4px; font-size: 1.5rem; text-align: center; font-weight: bold; margin-top: 10px; outline: none; }
+        .modal-text-input:focus { border-color: var(--c-text-accent); background: var(--c-bg-hover); }
 
         .toast {
             position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px);
@@ -425,112 +512,105 @@
         }
         .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
-        .log-entry { display: flex; flex-direction: column; border-bottom: 1px solid #222; padding: 12px 15px; gap: 6px; }
-        
-        /* 共有ログ用の行スタイル（パディングゼロ） */
-        .log-entry.shared-log-entry { padding: 12px 0; }
+        .log-entry { display: flex; flex-direction: column; border-bottom: 1px solid var(--c-bg-element); padding: 12px 15px; gap: 6px; }
+        .log-entry.shared-log-entry { padding: 12px 15px; }
 
-        /* ログリストのスタイル統一 */
         .log-grid {
             display: grid;
-            align-items: center; /* デフォルトは中央揃え */
+            align-items: center; 
             gap: 8px;
             width: 100%;
-            padding: 4px 0; /* 上下の余白 */
+            padding: 0; 
         }
-        
-        .log-grid-my {
-            grid-template-columns: 32px 60px 1fr auto; /* 回数, 時刻, 内容, アクション */
-        }
-        
-        .log-grid-shared {
-            grid-template-columns: 32px 32px 60px 1fr auto; /* アイコン, 回数, 時刻, 内容, アクション */
-        }
+        .log-grid-my { grid-template-columns: 32px 60px 1fr auto; }
+        .log-grid-shared { grid-template-columns: 32px 32px 60px 1fr auto; }
         
         .log-time { 
-            color: #666; font-size: 0.85rem; 
-            text-align: left; 
-            font-weight: bold;
-            margin-top: 2px; /* 位置調整 */
+            color: var(--c-text-muted); font-size: 0.85rem; 
+            text-align: left; font-weight: bold; margin-top: 2px; 
         }
-        
         .log-count { 
-            color: #888; font-weight: 700; font-size: 1.05rem; 
-            text-align: center; margin-right: 4px;
-            line-height: 1.2;
+            color: var(--c-text-sub); font-weight: 700; font-size: 1.05rem; 
+            text-align: center; margin-right: 4px; line-height: 1.2;
         }
-        
-        /* 構造変更：縦並びに対応 */
-        .log-content-wrapper {
-            display: flex; flex-direction: column; /* 縦並び */
-            align-items: flex-start; 
-            gap: 2px;
-            overflow: hidden; 
-        }
-        
+        .log-content-wrapper { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; overflow: hidden; }
         .log-main-line { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; overflow: hidden; max-width: 100%; }
-        
         .log-memo-line { 
-            font-size: 0.75rem; color: #666; 
-            white-space: pre-wrap; word-break: break-all; 
-            line-height: 1.3; 
-            margin-top: 2px;
+            font-size: 0.75rem; color: var(--c-text-muted); 
+            white-space: pre-wrap; word-break: break-all; line-height: 1.3; margin-top: 2px;
         }
 
-        .text-location { font-size: 1.05rem; font-weight: 700; color: #fff; }
-        .text-vehicle { font-size: 1.05rem; font-weight: 700; color: #fff; }
-        .log-separator, .log-label-no { color: #666; font-size: 0.85rem; font-weight: bold; }
-        .text-profile { font-size: 0.75rem; color: #666; margin-left: 4px; } /* #666に変更 */
+        .text-location { font-size: 1.05rem; font-weight: 700; color: var(--c-text-accent); }
+        .text-vehicle { font-size: 1.05rem; font-weight: 700; color: var(--c-text-accent); }
+        .log-separator, .log-label-no { color: var(--c-text-muted); font-size: 0.85rem; font-weight: bold; }
+        .text-profile { font-size: 0.75rem; color: var(--c-text-muted); margin-left: 4px; } 
 
-        .log-actions { 
-            display: flex; gap: 4px; justify-content: flex-end; align-self: center; margin-top: 0; 
-            position: relative; /* メニュー用 */
-        }
+        .log-actions { display: flex; gap: 4px; justify-content: flex-end; align-self: center; margin-top: 0; position: relative; }
         
         .author-icon-list {
             width: 28px; height: 28px; border-radius: 50%; 
-            border: 1px solid #444; object-fit: cover;
-            margin-top: 2px;
+            border: 1px solid var(--c-border-light); object-fit: cover;
+            margin-top: 0;
         }
         
         .icon-btn { 
-            background: transparent; border: none; color: #666; 
-            width: 32px; height: 32px;
-            border-radius: 50%;
+            background: transparent; border: none; color: var(--c-text-muted); 
+            width: 32px; height: 32px; border-radius: 50%;
             cursor: pointer; display: flex; align-items: center; justify-content: center; 
             transition: all 0.2s; 
         }
-        .icon-btn:hover { 
-            background-color: rgba(255, 255, 255, 0.1);
-            color: #fff; 
-        }
+        .icon-btn:hover { background-color: rgba(255, 255, 255, 0.1); color: var(--c-text-accent); }
         .icon-btn .material-symbols-outlined { font-size: 1.2rem; }
 
-        .daily-summary-box { padding: 10px; border-bottom: 1px solid #333; background: #111; }
+        .daily-summary-box { padding: 10px; border-bottom: 1px solid #333; background: var(--c-bg-card); }
         .status-table { width: 100%; border-collapse: collapse; margin-top: 0; }
-        .status-table th, .status-table td { border: 1px solid #444; padding: 8px; text-align: center; font-size: 0.85rem; color: #eee; }
-        .status-table th { background: #222; color: #aaa; }
-        .profile-badge-small { display: block; font-size: 0.65rem; color: #999; margin-top: 4px; }
-        .th-profile-sub { display: block; font-size: 0.7rem; color: #888; font-weight: normal; margin-top: 2px; }
+        .status-table th, .status-table td { border: 1px solid #444; padding: 8px; text-align: center; font-size: 0.85rem; color: var(--c-text-main); }
+        .status-table th { background: var(--c-bg-element); color: var(--c-text-sub); }
+        .profile-badge-small { display: block; font-size: 0.65rem; color: var(--c-text-sub); margin-top: 4px; }
+        .th-profile-sub { display: block; font-size: 0.7rem; color: var(--c-text-sub); font-weight: normal; margin-top: 2px; }
 
         /* Footer Styles */
-        .app-footer { margin-top: 50px; padding: 20px 0; border-top: 1px solid #222; font-size: 0.75rem; color: #555; letter-spacing: 1px; }
-        .footer-app-name { font-size: 1rem; font-weight: bold; color: #ccc; margin-bottom: 8px; font-family: var(--font-display); }
-        .footer-version { font-size: 0.75rem; color: #666; margin-bottom: 4px; }
-        .disclaimer { font-size: 0.7rem; color: #444; margin-top: 5px; }
-        .app-footer a { color: #888; text-decoration: none; border-bottom: 1px dotted #666; transition: 0.2s; }
-        .app-footer a:hover { color: #fff; border-bottom-style: solid; }
+        .app-footer { 
+            margin-top: 40px; 
+            padding: 40px 0 20px; 
+            border-top: 1px solid #222; 
+            font-size: 0.75rem; 
+            color: #555; 
+            letter-spacing: 1px; 
+            font-family: var(--font-main); 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+        .footer-app-name { 
+            font-size: 1rem; 
+            font-weight: bold; 
+            color: #ccc; 
+            margin: 0; 
+            font-family: var(--font-display); 
+        }
+        .footer-version { 
+            font-size: 0.75rem; 
+            color: #666; 
+            margin: 0 0 5px 0; 
+        }
+        .disclaimer { 
+            font-size: 0.7rem; 
+            color: #444; 
+            margin: 0; 
+        }
+        .app-footer a { color: inherit; text-decoration: none; border-bottom: none; transition: 0.2s; }
+        .app-footer a:hover { opacity: 0.7; }
 
         /* --- レスポンシブ対応 --- */
         @media (max-width: 600px) {
-            /* 運営状況：日付短縮、名前非表示 */
             .date-full { display: none; }
             .date-short { display: inline; }
             .author-name-mini { display: none; }
-            
-            /* ログリスト：アクションボタン切り替え */
             .log-actions.desktop-only { display: none !important; }
             .log-actions.mobile-only { display: flex !important; }
+            .author-list { flex-direction: row; flex-wrap: wrap; }
         }
         @media (min-width: 601px) {
             .date-full { display: inline; }
@@ -543,23 +623,22 @@
         .action-menu-container { position: relative; }
         .action-menu { 
             position: absolute; right: 0; top: 100%; 
-            background: #222; border: 1px solid #444; 
+            background: var(--c-bg-element); border: 1px solid var(--c-border-light); 
             border-radius: 4px; z-index: 100; 
             display: none; flex-direction: column; min-width: 100px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.5);
         }
         .action-menu.show { display: flex; }
         .action-menu-item {
-            background: transparent; border: none; color: #eee;
+            background: transparent; border: none; color: var(--c-text-main);
             padding: 12px 15px; text-align: left; cursor: pointer;
             font-size: 0.9rem; width: 100%;
             display: flex; align-items: center; gap: 8px;
         }
-        .action-menu-item:hover { background: #333; }
+        .action-menu-item:hover { background: var(--c-bg-hover); }
         .action-menu-item .material-symbols-outlined { font-size: 1.1rem; }
-        .action-menu-item.delete-item { color: #ff5555; }
+        .action-menu-item.delete-item { color: var(--c-danger); }
         
-        /* オーバーレイ（メニュー背景クリックで閉じる用） */
         .menu-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 99; display: none;
@@ -575,7 +654,7 @@
         </header>
 
         <main class="app-container">
-            <!-- ユーザー・日付設定セクション -->
+            <!-- ユーザー設定セクション (config-section: 上に移動) -->
             <section class="config-section">
                 <div class="user-settings-area" id="user-card">
                     <div id="login-container">
@@ -597,7 +676,10 @@
                         </button>
                     </div>
                 </div>
+            </section>
 
+            <!-- 日付・入力セクション (input-section: entry-section から変更し、date-counter-area を移動) -->
+            <section class="input-section">
                 <div class="date-counter-area">
                     <div class="date-row"><input type="date" id="visit-date"></div>
                     <div class="counter-ui">
@@ -615,10 +697,7 @@
                         </div>
                     </div>
                 </div>
-            </section>
 
-            <!-- 入力セクション -->
-            <section class="input-section">
                 <div id="block-floor" class="input-block">
                     <div class="label">
                         <div class="label-left">フロア <span class="error-icon material-symbols-outlined">error</span></div>
@@ -683,7 +762,7 @@
                         <div class="label-left">メモ</div>
                         <span class="label-right">MEMO</span>
                     </div>
-                    <textarea id="memo-input" placeholder="メモを入力..."></textarea>
+                    <textarea id="memo-input" placeholder="メモを入力..." rows="3"></textarea>
                 </div>
 
                 <div class="action-area">
@@ -754,7 +833,7 @@
 
         <footer class="app-footer">
             <p class="footer-app-name">TOT LOGGER</p>
-            <p class="footer-version">Ver.1.0</p>
+            <p class="footer-version">Ver.1.0.0</p>
             <p class="disclaimer">Created by <a href="https://x.com/tamagineer" target="_blank" rel="noopener">Tamas (@tamagineer)</a></p>
         </footer>
     </div>
@@ -885,9 +964,9 @@
 
         // Helper Functions
         function formatDate(dateStr) {
-            // YYYY-MM-DD -> MM/DD
+            // YYYY-MM-DD -> YYYY/MM/DD (full), MM/DD (short)
             const parts = dateStr.split('-');
-            return `<span class="date-full">${dateStr}</span><span class="date-short">${parts[1]}/${parts[2]}</span>`;
+            return `<span class="date-full">${dateStr.replace(/-/g, '/')}</span><span class="date-short">${parts[1]}/${parts[2]}</span>`;
         }
 
         function generateDailySummaryHTML(logs, dateStr, externalSuspended = null) {
@@ -1138,7 +1217,7 @@
             renderHistory() {
                 const div = this.els.historyContainer; 
                 if (!State.logs.length) { 
-                    div.innerHTML = "<p style='color:#666; padding:0;'>記録なし</p>"; 
+                    div.innerHTML = "<p style='color:#666; padding:0; margin:0;'>記録なし</p>"; 
                     return; 
                 }
                 const groups = {}; State.logs.forEach(l => { if (!groups[l.date]) groups[l.date] = []; groups[l.date].push(l); });
@@ -1147,11 +1226,13 @@
                     const isPub = State.publishedDates.has(date);
                     const logs = groups[date];
                     const summaryHTML = generateDailySummaryHTML(logs, date);
+                    // [修正] マイログの日付表記をYYYY/MM/DDに変更
+                    const dateDisplay = date.replace(/-/g, '/');
                     html += `<details class="daily-log" ${State.openHistoryDates.has(date)?'open':''} data-date="${date}">
                         <summary class="daily-summary">
                             <div class="summary-left">
                                 <span class="material-symbols-outlined">chevron_right</span>
-                                <div class="summary-info"><span class="summary-date">${date}</span> <span class="summary-count">${groups[date].length}件</span></div>
+                                <div class="summary-info"><span class="summary-date">${dateDisplay}</span> <span class="summary-count">${groups[date].length}件</span></div>
                             </div>
                             <div class="summary-right">
                                 <span class="publish-status-text ${isPub ? 'active' : ''}">${isPub ? '公開中' : '非公開'}</span>
@@ -1164,14 +1245,18 @@
                         <div class="history-content">
                             ${summaryHTML}
                             <div class="log-list">`;
+                    // 修正: 昇順にソート
                     groups[date].sort((a,b)=>a.count-b.count).forEach(l => {
                         const vehicleStr = l.vehicle ? l.vehicle : '--';
                         const profileName = (l.profile && l.profile !== 'UNKNOWN' && l.profile !== 'TOWER 1') ? CONSTANTS.PROFILES[l.profile] : '';
                         const memoHtml = l.memo ? `<div class="log-memo-line">${l.memo}</div>` : '';
                         
+                        // hasMemoフラグに関わらずデフォルトのCSSクラスを適用（常に中央揃え）
+                        const gridClass = "log-grid log-grid-my";
+
                         html += `
                         <div class="log-entry" id="log-${l.id}">
-                            <div class="log-grid log-grid-my">
+                            <div class="${gridClass}">
                                 <div class="log-count">#${l.count}</div>
                                 <div class="log-time">${l.time||'--:--'}</div>
                                 <div class="log-content-wrapper">
@@ -1216,6 +1301,16 @@
                 }
 
                 if (State.currentSharedTab === 'status') {
+                    // データを日付でグルーピング
+                    const groupedReports = {};
+                    // まず日付降順に
+                    const sortedReports = [...State.sharedReports].sort((a,b) => b.date.localeCompare(a.date));
+                    
+                    sortedReports.forEach(r => {
+                        if (!groupedReports[r.date]) groupedReports[r.date] = [];
+                        groupedReports[r.date].push(r);
+                    });
+
                     let html = `
                     <div class="status-scroll-wrapper">
                         <table class="shared-status-table">
@@ -1225,30 +1320,53 @@
                                     <th colspan="2">TOUR A</th>
                                     <th colspan="2">TOUR B</th>
                                     <th colspan="2">TOUR C</th>
-                                    <th rowspan="2">投稿者</th>
+                                    <th rowspan="2" class="th-author">投稿者</th>
                                 </tr>
-                                <tr><th>1F</th><th>2F</th><th>1F</th><th>2F</th><th>1F</th><th>2F</th></tr>
+                                <tr>
+                                    <th class="col-tour">1F</th><th class="col-tour">2F</th>
+                                    <th class="col-tour">1F</th><th class="col-tour">2F</th>
+                                    <th class="col-tour">1F</th><th class="col-tour">2F</th>
+                                </tr>
                             </thead>
                             <tbody>`;
-                    const sortedReports = [...State.sharedReports].sort((a,b) => b.date.localeCompare(a.date));
-                    sortedReports.forEach(r => {
-                        const s = r.summary || { A: {}, B: {}, C: {} };
-                        const suspended = r.suspended || [];
-                        const getVal = (t, f) => {
-                            if (suspended.includes(t)) return '<span class="td-suspended" style="color:#ff5555;">×</span>';
-                            return s[t] && s[t][f] ? s[t][f] : '-';
+                    
+                    Object.keys(groupedReports).forEach(date => {
+                        // 日付内のレポートをUID降順でソート
+                        const dailyReports = groupedReports[date].sort((a,b) => (b.author.uid || "").localeCompare(a.author.uid || ""));
+                        
+                        // 各セルの値をマージする関数
+                        const getMergedVal = (tour, floor) => {
+                            const values = new Set();
+                            dailyReports.forEach(r => {
+                                const s = r.summary || { A: {}, B: {}, C: {} };
+                                const suspended = r.suspended || [];
+                                let val = '-';
+                                if (suspended.includes(tour)) {
+                                    val = '<span class="td-suspended" style="color:#ff5555;">×</span>';
+                                } else if (s[tour] && s[tour][floor]) {
+                                    val = s[tour][floor];
+                                }
+                                values.add(val);
+                            });
+                            // 値が複数ある場合は改行でつなぐ（重複排除済み）
+                            return Array.from(values).join('<br>');
                         };
+
+                        // 投稿者リストHTML生成
+                        let authorsHtml = '<div class="author-list">';
+                        dailyReports.forEach(r => {
+                            authorsHtml += `<img src="${r.author.photoURL || ''}" class="author-icon-mini" onerror="this.style.display='none'" title="${r.author.name}">`;
+                        });
+                        authorsHtml += '</div>';
+
                         html += `
                         <tr>
-                            <td class="fixed-col-date">${formatDate(r.date)}</td>
-                            <td>${getVal('A', 1)}</td><td>${getVal('A', 2)}</td>
-                            <td>${getVal('B', 1)}</td><td>${getVal('B', 2)}</td>
-                            <td>${getVal('C', 1)}</td><td>${getVal('C', 2)}</td>
-                            <td>
-                                <div class="author-info-mini">
-                                    <img src="${r.author.photoURL || ''}" class="author-icon-mini" onerror="this.style.display='none'">
-                                    <span class="author-name-mini">${r.author.name}</span>
-                                </div>
+                            <td class="fixed-col-date">${formatDate(date)}</td>
+                            <td class="col-tour">${getMergedVal('A', 1)}</td><td class="col-tour">${getMergedVal('A', 2)}</td>
+                            <td class="col-tour">${getMergedVal('B', 1)}</td><td class="col-tour">${getMergedVal('B', 2)}</td>
+                            <td class="col-tour">${getMergedVal('C', 1)}</td><td class="col-tour">${getMergedVal('C', 2)}</td>
+                            <td class="author-cell">
+                                ${authorsHtml}
                             </td>
                         </tr>`;
                     });
@@ -1264,6 +1382,7 @@
                         }
                     });
                     
+                    // 日付(降順) > 時刻(降順) でソート
                     allLogs.sort((a, b) => b.date.localeCompare(a.date) || (b.time || "").localeCompare(a.time || ""));
                     
                     const groupedLogs = {};
@@ -1272,11 +1391,26 @@
                         groupedLogs[log.date].push(log);
                     });
                     
-                    let html = `<div style="text-align:left;" class="shared-content-inner">`;
+                    let html = `<div class="shared-content-inner">`; // コンテナ
                     Object.keys(groupedLogs).sort((a,b)=>b.localeCompare(a)).forEach(date => {
-                        html += `<div class="shared-date-header">${date.replace(/-/g, '/')}</div>`;
+                        // マイログと同じアコーディオン構造を作成
+                        // トグルスイッチなし
+                        // 運営状況サマリーなし
                         
+                        // 同じ日付内のログを「搭乗回数 (count)」の昇順でソート ( (a.count || 0) - (b.count || 0) )
                         const dailyLogs = groupedLogs[date].sort((a, b) => (a.count || 0) - (b.count || 0));
+                        
+                        html += `<details class="daily-log" open data-date="${date}">
+                            <summary class="daily-summary">
+                                <div class="summary-left">
+                                    <span class="material-symbols-outlined">chevron_right</span>
+                                    <div class="summary-info"><span class="summary-date">${date.replace(/-/g, '/')}</span> <span class="summary-count">${dailyLogs.length}件</span></div>
+                                </div>
+                                <!-- トグルスイッチは削除 -->
+                            </summary>
+                            <div class="history-content">
+                                <!-- 運営状況サマリーは削除 -->
+                                <div class="log-list">`;
                         
                         dailyLogs.forEach(l => {
                              const vehicleStr = l.vehicle ? l.vehicle : '--'; 
@@ -1284,6 +1418,7 @@
                              const isMyLog = l.author?.uid === State.user?.uid;
                              const memoHtml = l.memo ? `<div class="log-memo-line">${l.memo}</div>` : '';
                              
+                             // hasMemoフラグに関わらずデフォルトのCSSクラスを適用（常に中央揃え）
                              const gridClass = "log-grid log-grid-shared";
 
                              let actionHtml = '';
@@ -1307,7 +1442,7 @@
                              }
 
                              html += `
-                            <div class="log-entry shared-log-entry">
+                            <div class="log-entry shared-log-entry" id="shared-log-${l.id}">
                                 <div class="${gridClass}">
                                     <img src="${l.author.photoURL || ''}" class="author-icon-list" onerror="this.style.display='none'">
                                     <div class="log-count">#${l.count}</div>
@@ -1325,6 +1460,7 @@
                                 </div>
                             </div>`;
                         });
+                        html += `</div></div></details>`;
                     });
                     html += `</div>`;
                     content.innerHTML = html;
@@ -1506,7 +1642,7 @@
                 author: { uid: State.user.uid, name: State.user.displayName || "NoName", photoURL: State.user.photoURL },
                 updatedAt: serverTimestamp(),
                 suspended: Array.from(Object.keys(dailyData.suspended).filter(k=>dailyData.suspended[k])),
-                logs: logs.map(l => ({ id: l.id, time: l.time, count: l.count, tour: l.tour, floor: l.floor, vehicle: l.vehicle, profile: l.profile }))
+                logs: logs.map(l => ({ id: l.id, time: l.time, count: l.count, tour: l.tour, floor: l.floor, vehicle: l.vehicle, profile: l.profile, memo: l.memo })) // memoを追加
             };
             
             await setDoc(doc(db, 'shared_reports', dateStr + "_" + State.user.uid), reportData); 
