@@ -2,426 +2,725 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- キャッシュ対策 -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
 
-    <title>TOT Logger</title>
+    <title>TOT Logger (Live Server)</title>
     
-    <!-- Google Fonts & Icons -->
+    <!-- Fonts & Icons -->
+    <link rel="stylesheet" href="https://use.typekit.net/erb7jzd.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-    <link rel="stylesheet" href="https://use.typekit.net/erb7jzd.css">
 
     <style>
         /* =========================================
-           1. BASE
+           1. VARIABLES & BASE
            ========================================= */
         :root {
-            --c-bg: #000000;
-            --c-card: #161616;
-            --c-text: #e0e0e0;
-            --c-text-sub: #888;
-            --c-accent: #ffffff;
-            --c-border: #333;
-            --c-fab: #ffffff; /* FAB Color */
-            --c-fab-text: #000000;
-            --nav-height: 60px;
-            --header-height: 56px;
+            --c-bg-body: #000000;
+            --c-bg-card: #111111;
+            --c-bg-input: #1a1a1a;
+            --c-bg-btn: #000000;
+            --c-bg-btn-active: #ffffff;
+            --c-text-main: #e0e0e0;
+            --c-text-sub: #888888;
+            --c-text-inverse: #000000;
+            --c-text-accent: #ffffff;
+            --c-border: #333333;
+            --c-border-light: #444444;
+            --c-caution: #ff5555;
+            --c-caution-bg: #221111;
+            
+            --radius-sm: 6px;
+            --radius-md: 12px;
+            --radius-pill: 24px;
+            
+            --font-main: 'Noto Sans JP', sans-serif;
+            --font-display: "stencil-std", sans-serif;
+            
+            /* Spacing System */
+            --space-xs: 8px;
+            --space-sm: 16px;
+            --space-md: 24px;
+            --space-lg: 40px;
+            --space-xl: 60px;
         }
 
         body {
-            background-color: var(--c-bg); color: var(--c-text);
-            font-family: 'Noto Sans JP', sans-serif;
-            margin: 0; padding: 0; width: 100%; height: 100%;
-            -webkit-tap-highlight-color: transparent; overflow: hidden; /* App-like feel */
+            background-color: var(--c-bg-body); color: var(--c-text-main); font-family: var(--font-main);
+            margin: 0; padding: 0; text-align: center; box-sizing: border-box; width: 100%; font-weight: 400;
+            line-height: 1.5;
         }
+        .main-wrapper { max-width: 600px; margin: 0 auto; padding: 20px; box-sizing: border-box; }
 
-        /* Scrollable Main Area */
-        .app-container {
-            height: 100vh; display: flex; flex-direction: column;
-        }
-        
-        .main-content {
-            flex: 1; overflow-y: auto; position: relative;
-            padding-bottom: 80px; /* Space for FAB */
-            scroll-behavior: smooth;
+        body.modal-open { overflow: hidden; }
+
+        /* 修正モード中の表示制御 */
+        body.editing-mode .data-manager { display: none; }
+        body.editing-mode .data-manager-separator { display: none; }
+
+        header { padding: 10px 0 20px; }
+        h1 {
+            font-family: var(--font-display); font-size: 2.2rem; margin: 0 0 var(--space-md) 0;
+            color: var(--c-text-accent); letter-spacing: 2px; border-bottom: 1px solid var(--c-border); padding-bottom: 20px;
         }
 
         /* =========================================
-           2. NAVIGATION & HEADER
+           2. 共通コンポーネント
            ========================================= */
-        /* Top Header */
-        .app-header {
-            height: var(--header-height);
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 0 20px; border-bottom: 1px solid var(--c-border);
-            background: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
-            position: sticky; top: 0; z-index: 100;
+        .label {
+            font-size: 0.85rem; color: #bbb; margin-bottom: 8px; text-align: left; padding: 0; /* 左端揃え */ font-weight: bold;
+            display: flex; justify-content: space-between; align-items: baseline;
+            width: 100%; box-sizing: border-box;
+            transition: color 0.3s;
         }
-        .app-title { font-family: "stencil-std", sans-serif; font-size: 1.5rem; letter-spacing: 1px; color: var(--c-accent); margin: 0; }
-        
-        .header-actions { display: flex; gap: 15px; align-items: center; }
-        .user-icon-btn { width: 32px; height: 32px; border-radius: 50%; border: 1px solid #444; object-fit: cover; cursor: pointer; }
-        
-        /* Bottom Tabs */
-        .bottom-nav {
-            height: var(--nav-height); border-top: 1px solid var(--c-border);
-            background: #080808; display: flex; justify-content: space-around; align-items: center;
-            padding-bottom: env(safe-area-inset-bottom);
-            position: relative; z-index: 100;
-        }
-        .nav-item {
-            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            background: none; border: none; color: #555; cursor: pointer; height: 100%;
-            transition: color 0.2s;
-        }
-        .nav-item.active { color: #fff; }
-        .nav-item .material-symbols-outlined { font-size: 1.6rem; margin-bottom: 3px; }
-        .nav-label { font-size: 0.65rem; font-weight: bold; }
-        .nav-item.active .material-symbols-outlined { font-variation-settings: 'FILL' 1; }
+        .label-left { display: flex; align-items: center; }
+        .label-right { font-size: 0.7rem; color: var(--c-text-sub); font-weight: normal; letter-spacing: 0.5px; }
 
-        /* FAB (Floating Action Button) */
-        .fab {
-            position: fixed; bottom: calc(var(--nav-height) + 20px); right: 20px;
-            width: 56px; height: 56px; border-radius: 50%;
-            background: var(--c-fab); color: var(--c-fab-text);
-            border: none; box-shadow: 0 4px 12px rgba(255,255,255,0.3);
+        .btn {
+            background-color: var(--c-bg-btn); color: #ccc; border: 1px solid var(--c-border-light);
+            border-radius: var(--radius-sm); padding: 14px 0; font-size: 1rem;
+            font-weight: 700; cursor: pointer; transition: all 0.15s ease; width: 100%; font-family: var(--font-main);
+        }
+        .btn:active { transform: scale(0.98); }
+        .btn:hover { background-color: #222; color: #fff; border-color: #666; }
+        .btn.selected { background-color: var(--c-bg-btn-active); color: var(--c-text-inverse); border-color: var(--c-bg-btn-active); }
+        .btn.selected:hover { background-color: #e0e0e0; }
+
+        .btn.loading { opacity: 0.6; pointer-events: none; cursor: wait; }
+        
+        /* 非推奨・注意・使用済み・休止ボタンのデザイン統一（破線・グレー） */
+        .btn-caution, .btn-suspended-view, .btn-used { 
+            border-style: dashed !important; 
+            border-color: #444 !important; 
+            color: #666 !important; 
+        }
+        .btn-caution:hover, .btn-suspended-view:hover, .btn-used:hover {
+            color: #888 !important;
+            border-color: #666 !important;
+        }
+        .btn-caution.selected, .btn-suspended-view.selected, .btn-used.selected { 
+            background-color: #ccc !important; 
+            color: #000 !important; 
+            border-style: solid !important; 
+            border-color: #ccc !important;
+            opacity: 1;
+        }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+        
+        .config-section, .input-section { margin-bottom: var(--space-lg); }
+        .data-manager { margin-bottom: var(--space-lg); }
+        .data-manager-separator { border-top: 1px dashed #333; padding-top: var(--space-lg); }
+        
+        .input-block { 
+            margin-bottom: var(--space-md); 
+            border-radius: var(--radius-sm); 
+            transition: all 0.3s;
+        }
+        
+        .error-icon {
+            display: none;
+            color: var(--c-caution);
+            font-size: 1.2rem;
+            margin-left: 8px;
+            vertical-align: middle; 
+        }
+        
+        .input-missing .error-icon {
+            display: inline-block;
+        }
+
+        /* =========================================
+           3. ユーザー設定・日付エリア
+           ========================================= */
+        .user-settings-area {
+            padding: 0; margin-bottom: var(--space-md);
+            background: transparent; border: none;
+            height: auto; min-height: 60px; display: flex; align-items: center; justify-content: center; box-sizing: border-box;
+        }
+        .user-settings-area.logged-in { justify-content: space-between; padding: 0 4px; }
+        #login-container { width: 100%; }
+        .sign-in-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 0; }
+        #user-info { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+        .user-info-left { display: flex; align-items: center; gap: 12px; }
+        .user-icon-img { width: 40px; height: 40px; border-radius: 50%; border: 1px solid #555; object-fit: cover; }
+        .user-text { text-align: left; line-height: 1.2; }
+        #user-name { font-weight: bold; font-size: 0.95rem; color: #fff; }
+        #user-screen-name { font-size: 0.75rem; color: #888; }
+        .logout-icon-btn {
+            background: transparent; border: none; color: #666;
+            width: 40px; height: 40px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            cursor: pointer; z-index: 200; transition: transform 0.1s;
+            cursor: pointer; transition: all 0.2s;
         }
-        .fab:active { transform: scale(0.95); }
-        .fab .material-symbols-outlined { font-size: 2rem; }
+        .logout-icon-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
 
-        /* =========================================
-           3. VIEWS (TABS)
-           ========================================= */
-        .view-section { display: none; padding: 20px; animation: fadeIn 0.2s ease; }
-        .view-section.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        /* History List Styles */
-        .log-list-container { display: flex; flex-direction: column; gap: 15px; }
-        
-        details.log-group { 
-            background: var(--c-card); border: 1px solid var(--c-border); 
-            border-radius: 8px; overflow: hidden;
+        .date-counter-area { 
+            background: var(--c-bg-card); padding: 20px; 
+            border-radius: var(--radius-md); border: 1px solid var(--c-border); 
+            margin-bottom: var(--space-lg); 
+            display: flex; flex-direction: column; gap: 15px;
         }
-        summary.log-summary {
-            padding: 15px; display: flex; align-items: center; justify-content: space-between;
-            cursor: pointer; list-style: none; font-weight: bold; background: #1a1a1a;
-        }
-        summary.log-summary::-webkit-details-marker { display: none; }
-        .summary-left { display: flex; align-items: center; gap: 10px; }
-        .arrow-icon { color: #666; transition: transform 0.2s; }
-        details[open] .arrow-icon { transform: rotate(90deg); color: #fff; }
-        
-        .log-entry { 
-            padding: 15px; border-top: 1px solid #333; 
-            display: flex; align-items: center; justify-content: space-between;
-        }
-        .log-content { display: flex; flex-direction: column; gap: 4px; }
-        .log-main-text { font-size: 1.1rem; font-weight: bold; color: #fff; display: flex; align-items: baseline; gap: 8px; }
-        .log-sub-text { font-size: 0.8rem; color: #888; }
-        .font-stencil { font-family: "stencil-std", sans-serif; letter-spacing: 1px; }
-
-        /* Public Log Styles */
-        .public-tabs { display: flex; margin-bottom: 15px; background: #222; border-radius: 8px; padding: 4px; }
-        .p-tab { 
-            flex: 1; background: none; border: none; color: #888; padding: 8px; 
-            border-radius: 6px; font-weight: bold; font-size: 0.85rem; cursor: pointer;
-        }
-        .p-tab.active { background: #444; color: #fff; }
-        .shared-list { min-height: 200px; }
-        .status-table { width: 100%; border-collapse: collapse; text-align: center; font-size: 0.8rem; }
-        .status-table th, .status-table td { border: 1px solid #444; padding: 8px 4px; }
-        .status-table th { background: #222; color: #aaa; }
-
-        /* =========================================
-           4. RECORD MODAL (FULL SCREEN)
-           ========================================= */
-        .record-modal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; z-index: 1000;
-            display: flex; flex-direction: column;
-            transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-        }
-        .record-modal.open { transform: translateY(0); }
-
-        .modal-header {
-            height: var(--header-height); padding: 0 15px;
-            display: flex; align-items: center; justify-content: space-between;
-            border-bottom: 1px solid #333; background: #111;
-            flex-shrink: 0;
-        }
-        .modal-title { font-weight: bold; font-size: 1rem; }
-        .btn-text { background: none; border: none; color: #aaa; font-size: 0.9rem; padding: 10px; }
-        .btn-action { 
-            background: none; border: none; color: #fff; font-weight: bold; font-size: 0.9rem; padding: 8px 16px;
-            background: #fff; color: #000; border-radius: 20px; opacity: 0.3; pointer-events: none; transition: 0.2s;
-        }
-        .btn-action.active { opacity: 1; pointer-events: auto; }
-
-        .modal-body {
-            flex: 1; overflow: hidden; position: relative; display: flex;
+        .date-row { text-align: center; }
+        .date-row input[type="date"] { 
+            width: 100%; max-width: 100%; box-sizing: border-box;
+            background: #000; color: #fff; border: 1px solid #444; 
+            border-radius: var(--radius-sm); font-size: 1.1rem; font-weight: bold; 
+            text-align: center; padding: 12px; color-scheme: dark; font-family: var(--font-main); 
         }
 
-        /* Step Slider */
-        .step-container {
-            width: 100%; height: 100%; padding: 20px; box-sizing: border-box;
-            display: none; flex-direction: column; overflow-y: auto;
-        }
-        .step-container.active { display: flex; animation: slideIn 0.3s ease; }
-        @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
-
-        /* Step 1: Location Grid */
-        .location-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; height: 100%; max-height: 400px; }
-        .loc-col { display: flex; flex-direction: column; gap: 12px; }
-        .loc-head { text-align: center; font-weight: bold; color: #666; font-size: 0.8rem; }
-        .loc-btn {
-            flex: 1; background: #222; border: 1px solid #444; border-radius: 8px;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            color: #fff; cursor: pointer; transition: 0.1s;
-        }
-        .loc-btn:active { background: #444; }
-        .tour-char { font-size: 2rem; font-weight: bold; }
-        .floor-num { font-size: 0.9rem; color: #888; }
-
-        /* Step 2: Vehicle Grid */
-        .vehicle-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; height: 100%; max-height: 400px; }
-        .veh-btn {
-            background: #222; border: 1px solid #444; border-radius: 8px;
+        .counter-ui { display: flex; align-items: center; justify-content: center; gap: 20px; }
+        .counter-btn { 
+            width: 48px; height: 48px; border-radius: 50%; 
+            background: var(--c-bg-input); color: #fff; border: 1px solid #444; 
+            font-size: 1.4rem; cursor: pointer; transition: 0.2s; 
             display: flex; align-items: center; justify-content: center;
-            color: #fff; font-family: "stencil-std", sans-serif; font-size: 2.5rem;
-            cursor: pointer;
         }
-        .veh-btn:active { background: #444; }
-        .edit-icon { font-size: 1.5rem; color: #aaa; }
+        .counter-btn:hover { background: #333; border-color: #888; }
+        .counter-display { font-size: 2rem; font-weight: 700; min-width: 80px; color: #fff; }
+        .unit { font-size: 0.9rem; color: #888; font-weight: normal; margin-left: 4px; }
 
-        /* Step 3: Confirm */
-        .confirm-card {
+        .time-section-fixed { display: flex; justify-content: center; align-items: center; height: 40px; }
+        .time-widget {
+            position: relative; background: #0a0a0a; border: 1px solid #444; border-radius: 20px;
+            height: 34px; width: 130px; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; overflow: hidden; transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1); color: #888;
+        }
+        .time-widget:hover { background: #222; border-color: #666; color: #fff; }
+        .time-widget.active { width: 160px; background: #222; border-color: #fff; color: #fff; cursor: default; }
+        .time-placeholder { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: bold; letter-spacing: 0.5px; white-space: nowrap; position: absolute; transition: opacity 0.2s; }
+        .time-widget.active .time-placeholder { opacity: 0; pointer-events: none; }
+        .time-editor { display: flex; align-items: center; gap: 5px; opacity: 0; pointer-events: none; transition: opacity 0.3s 0.1s; }
+        .time-widget.active .time-editor { opacity: 1; pointer-events: auto; }
+        .time-editor input[type="time"] { background: transparent; border: none; color: #fff; font-size: 1rem; font-family: var(--font-main); width: 90px; text-align: center; padding: 0; outline: none; }
+        .time-editor input[type="time"]::-webkit-calendar-picker-indicator { display: none; -webkit-appearance: none; }
+        .time-clear-btn { background: #444; border: none; color: #ccc; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; flex-shrink: 0; }
+        .time-clear-btn:hover { background: #666; color: #fff; }
+        .time-clear-btn .material-symbols-outlined { font-size: 12px; }
+
+        /* =========================================
+           4. 入力エリア
+           ========================================= */
+        .status-bar-wrapper { margin-top: 15px; }
+        .status-bar { border: 1px solid var(--c-border); background: var(--c-bg-card); padding: 10px; border-radius: var(--radius-sm); font-weight: bold; color: #fff; font-size: 0.95rem; }
+        .vehicle-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .vehicle-btn { height: 56px; font-size: 1.3rem; display: flex; justify-content: center; align-items: center; }
+        
+        .profile-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .profile-btn { font-size: 0.85rem; padding: 12px 0; line-height: 1.3; }
+        
+        .suspension-area { 
+            border: 1px dashed var(--c-border); background: #0f0f0f;
+            padding: 15px; border-radius: var(--radius-sm); margin-bottom: var(--space-md); 
+        }
+        .suspension-area .label { color: #888; }
+        .suspend-btn-container { display: flex; justify-content: center; gap: 8px; }
+        .suspend-btn { flex: 1; padding: 10px; background: #000; border: 1px solid #444; color: #666; border-radius: var(--radius-sm); font-size: 0.85rem; cursor: pointer; transition: 0.2s; }
+        .suspend-btn.active { background: var(--c-caution-bg); border-color: var(--c-caution); color: var(--c-caution); font-weight: bold; }
+        
+        .memo-area { margin-bottom: var(--space-lg); }
+        .memo-area textarea { width: 100%; height: 80px; padding: 12px; background: var(--c-bg-card); color: #fff; border: 1px solid #444; border-radius: var(--radius-sm); resize: none; font-size: 0.95rem; box-sizing: border-box; font-family: var(--font-main); line-height: 1.5; }
+        .memo-area textarea:focus { border-color: #888; outline: none; }
+
+        .submit-btn { width: 100%; padding: 18px; background: #222; color: #fff; border: 1px solid #fff; font-weight: bold; font-size: 1.1rem; cursor: pointer; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
+        .cancel-btn { width: 100%; padding: 15px; margin-top: 15px; background: transparent; color: #888; border: 1px solid #444; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
+
+        /* =========================================
+           5. 搭乗ログ & モーダル共通
+           ========================================= */
+        .main-accordion {
+            background: #222;
+            border: 1px solid #444;
+            border-radius: var(--radius-sm);
+            margin-bottom: 15px;
+            overflow: visible; /* Sticky対応のためvisibleに変更 */
+            transition: background 0.2s;
+        }
+        .main-accordion[open] { background: #1a1a1a; }
+        
+        .menu-trigger-summary {
+            background: #222; padding: 16px 20px; 
+            display: flex; justify-content: space-between; align-items: center; 
+            cursor: pointer; list-style: none;
+            border-radius: var(--radius-sm);
+        }
+        .main-accordion[open] > .menu-trigger-summary { 
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+
+        .menu-trigger-summary::-webkit-details-marker { display: none; }
+        .menu-trigger-summary:hover { background: #2a2a2a; }
+
+        .menu-title-group { display: flex; align-items: center; gap: 12px; }
+        .menu-title-ja { font-size: 1rem; font-weight: bold; color: #fff; }
+        
+        .arrow-icon { color: #888; transition: transform 0.3s; font-size: 1.4rem; }
+        .main-accordion[open] > .menu-trigger-summary .arrow-icon { transform: rotate(180deg); color: #fff; }
+        
+        .history-content-wrapper {
+            padding: 10px; /* 上下左右統一 */
+            background: #111;
+            border-top: 1px solid #333;
+            /* 修正：日付別ブロックが1つある状態（未展開）と同じ高さに設定 */
+            min-height: 56px; 
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border-bottom-left-radius: var(--radius-sm);
+            border-bottom-right-radius: var(--radius-sm);
+        }
+
+        .menu-trigger-card { 
+            background: #222; border: 1px solid #444; border-radius: var(--radius-sm); 
+            padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; 
+            cursor: pointer; margin-bottom: 15px; transition: background 0.2s; 
+        }
+        .menu-trigger-card:hover { background: #2a2a2a; }
+        
+        details.daily-log { 
+            background: var(--c-bg-card); 
+            border: 1px solid var(--c-border); 
+            border-radius: var(--radius-sm); 
+            margin-bottom: 10px; 
+            overflow: visible; 
+            text-align: left; 
+        }
+        details.daily-log:last-child { margin-bottom: 0; }
+
+        /* マイログの日付ヘッダーもStickyに */
+        summary.daily-summary { 
+            background: #1a1a1a; padding: 12px 15px; 
+            cursor: pointer; font-weight: bold; 
+            display: flex; align-items: center; color: #fff; 
+            list-style: none; border-bottom: 1px solid #222; 
+            justify-content: space-between;
+            position: sticky; top: 0; z-index: 5; /* 追加 */
+        }
+        summary.daily-summary::-webkit-details-marker { display: none; }
+        
+        .summary-left { display: flex; align-items: center; gap: 10px; flex: 1; }
+        .summary-left .material-symbols-outlined { transition: transform 0.3s; }
+        details.daily-log[open] > summary.daily-summary .summary-left .material-symbols-outlined { transform: rotate(90deg); }
+
+        .summary-info { text-align: left; }
+        .summary-date { font-weight: bold; font-size: 1rem; }
+        .summary-count { font-size: 0.85rem; color: #aaa; margin-left: 8px; }
+        
+        .summary-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+        
+        .publish-status-text {
+            font-size: 0.75rem; color: #666; font-weight: normal; transition: color 0.2s;
+        }
+        .publish-status-text.active { color: #fff; font-weight: bold; }
+
+        .toggle-switch-sm { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
+        .toggle-switch-sm input { opacity: 0; width: 0; height: 0; }
+        .slider-sm { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 24px; border: 1px solid #555; }
+        .slider-sm:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: #888; transition: .4s; border-radius: 50%; }
+        input:checked + .slider-sm { background-color: #ddd; border-color: #fff; }
+        input:checked + .slider-sm:before { transform: translateX(19px); background-color: #000; }
+        
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(5px); z-index: 1000; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s; }
+        .modal-overlay.active { display: flex; opacity: 1; }
+        
+        .modal-content { 
+            background: #111; width: 95%; 
+            max-width: 600px; 
+            height: 90%; border-radius: 8px; border: 1px solid #333; 
+            display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
+        }
+        
+        .modal-header { padding: 15px 20px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
+        .modal-title-group { display: flex; align-items: center; gap: 10px; }
+        .modal-header h2 { margin: 0; font-size: 1.2rem; color: #fff; font-family: var(--font-display); }
+        .modal-header-actions { display: flex; gap: 10px; }
+        
+        .header-icon-btn {
+            background: transparent; border: none; color: #888; width: 36px; height: 36px; border-radius: 50%;
+            cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s;
+        }
+        .header-icon-btn:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+
+        .tab-group { display: flex; border-bottom: 1px solid #333; background: #1a1a1a; }
+        .tab-btn { flex: 1; padding: 12px; background: transparent; border: none; color: #888; font-weight: bold; cursor: pointer; transition: 0.2s; border-bottom: 3px solid transparent; font-size: 0.9rem; }
+        .tab-btn.active { color: #fff; border-bottom-color: #fff; background: #222; }
+        /* 上パディングを0にして、子要素のマージンで調整することでStickyヘッダーを綺麗に表示 */
+        .shared-list { flex: 1; overflow-y: auto; padding: 0 15px 15px 15px; }
+
+        /* === 運営状況テーブル（共有DB用） === */
+        /* テーブルヘッダーのSticky固定 */
+        .status-scroll-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 20px; border: 1px solid #333; border-radius: 4px; margin-top: 20px; /* リスト先頭マージン */ }
+        .shared-status-table { width: 100%; border-collapse: collapse; min-width: 500px; font-size: 0.75rem; }
+        .shared-status-table th, .shared-status-table td { border: 1px solid #333; padding: 6px; text-align: center; color: #eee; white-space: nowrap; }
+        .shared-status-table th { 
+            background: #222; color: #aaa; font-weight: bold; 
+            position: sticky; top: 0; z-index: 10;
+        }
+        /* 左上セル（日付見出し）はさらに前面へ */
+        .shared-status-table th:first-child { z-index: 15; left: 0; }
+        .shared-status-table td.fixed-col-date { position: sticky; left: 0; background: #151515; z-index: 2; font-weight: bold; color: #fff; border-right: 1px solid #444; }
+        .shared-status-table td.td-suspended { color: #ff5555; font-weight: bold; }
+        
+        /* ユーザー名の表示一貫性 */
+        .author-info-mini { display: flex; align-items: center; gap: 6px; justify-content: center; min-width: 100px; max-width: 120px; }
+        .author-icon-mini { width: 22px; height: 22px; border-radius: 50%; border: 1px solid #444; flex-shrink: 0; object-fit: cover; }
+        .author-name-mini { font-size: 0.75rem; color: #ccc; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+
+        /* === 共有ログの日付見出し === */
+        /* Sticky固定とマージン調整 */
+        .shared-date-header { 
+            font-size: 1.05rem; font-weight: bold; color: #fff; 
+            margin: 20px 0 0 0; 
+            padding: 10px 0 8px; /* パディング調整 */
+            border-bottom: 1px solid #333; 
+            text-align: left; 
+            background-color: #111; /* Sticky時の背景色（透過防止） */
+            position: sticky; top: 0; z-index: 5;
+        }
+        /* [修正] マージン0設定を削除（不採用） */
+        /* .shared-content-inner > .shared-date-header:first-child { margin-top: 0; } */
+
+        /* =========================================
+           6. 確認モーダル & 入力モーダル
+           ========================================= */
+        .modal-content.confirm-modal-content {
+            width: 85%; max-width: 360px; height: auto; min-height: auto;
             background: #1a1a1a; border: 1px solid #444; border-radius: 12px;
-            padding: 25px; text-align: center; margin-bottom: 20px;
+            padding: 24px 20px; box-shadow: 0 15px 40px rgba(0,0,0,0.7);
+            align-items: center; text-align: center;
         }
-        .confirm-main { font-size: 2.5rem; font-weight: bold; margin-bottom: 5px; }
-        .confirm-sub { color: #888; font-size: 0.9rem; }
-        
-        .form-section { margin-bottom: 20px; }
-        .section-label { display: block; color: #888; font-size: 0.8rem; margin-bottom: 8px; font-weight: bold; }
-        .profile-badges { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px; }
-        .p-badge { 
-            background: #222; border: 1px solid #444; color: #aaa; padding: 8px 12px; 
-            border-radius: 20px; font-size: 0.85rem; white-space: nowrap; cursor: pointer;
-        }
-        .p-badge.selected { background: #fff; color: #000; border-color: #fff; }
-        .memo-input { 
-            width: 100%; background: #222; border: 1px solid #444; color: #fff; 
-            padding: 10px; border-radius: 6px; box-sizing: border-box; 
-        }
+        .confirm-body { margin-bottom: 24px; display: flex; flex-direction: column; align-items: center; gap: 15px; }
+        .confirm-icon { font-size: 2.5rem; color: #ccc; }
+        .confirm-text { font-size: 0.95rem; color: #eee; line-height: 1.6; white-space: pre-wrap; margin: 0; font-family: var(--font-main); }
+        .confirm-actions { display: flex; gap: 12px; width: 100%; justify-content: center; }
 
-        /* Utility */
-        .step-indicator {
-            position: absolute; bottom: 20px; left: 0; width: 100%;
-            display: flex; justify-content: center; gap: 8px; pointer-events: none;
+        .btn-text {
+            background: transparent; border: 1px solid #444; color: #aaa;
+            padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold;
+            transition: 0.2s; flex: 1; max-width: 120px; font-family: var(--font-main);
         }
-        .dot { width: 8px; height: 8px; border-radius: 50%; background: #333; transition: 0.3s; }
-        .dot.active { background: #fff; transform: scale(1.2); }
+        .btn-text:hover { background: #333; color: #fff; }
+        .btn-primary {
+            background: #e0e0e0; border: none; color: #000;
+            padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold;
+            transition: 0.2s; flex: 1; max-width: 120px; font-family: var(--font-main);
+        }
+        .btn-primary:hover { background: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.3); }
 
-        /* Toast */
+        .modal-text-input { width: 200px; background: #222; border: 1px solid #555; color: #fff; padding: 10px; border-radius: 4px; font-size: 1.5rem; text-align: center; font-weight: bold; margin-top: 10px; outline: none; }
+        .modal-text-input:focus { border-color: #fff; background: #333; }
+
         .toast {
-            position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px);
-            background: #333; color: #fff; padding: 10px 20px; border-radius: 30px;
-            font-size: 0.9rem; opacity: 0; transition: 0.3s; pointer-events: none; z-index: 2000;
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px);
+            background: rgba(30, 30, 30, 0.95); color: #fff; padding: 12px 24px; border-radius: 30px;
+            border: 1px solid #555; font-size: 0.9rem; font-weight: bold; opacity: 0; transition: all 0.4s; z-index: 2000;
+            display: flex; align-items: center; gap: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.5);
         }
-        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+        .log-entry { display: flex; flex-direction: column; border-bottom: 1px solid #222; padding: 12px 15px; gap: 6px; }
         
-        /* Auth Modal */
-        #auth-overlay {
-            position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9);
-            z-index: 3000; display:none; align-items:center; justify-content:center;
+        /* 共有ログ用の行スタイル（パディングゼロ） */
+        .log-entry.shared-log-entry { padding: 12px 0; }
+
+        /* ログリストのスタイル統一 */
+        .log-grid {
+            display: grid;
+            align-items: center; /* デフォルトは中央揃え */
+            gap: 8px;
+            width: 100%;
+            padding: 4px 0; /* 上下の余白 */
         }
-        .auth-box { text-align:center; }
+        /* メモがある場合のみ上揃えにするクラス - 削除 */
+        /* .log-grid.has-memo {
+            align-items: start;
+        } */
+        
+        .log-grid-my {
+            grid-template-columns: 32px 60px 1fr auto; /* 回数, 時刻, 内容, アクション */
+        }
+        
+        .log-grid-shared {
+            grid-template-columns: 32px 32px 60px 1fr auto; /* アイコン, 回数, 時刻, 内容, アクション */
+        }
+        
+        .log-time { 
+            color: #666; font-size: 0.85rem; 
+            text-align: left; 
+            font-weight: bold;
+            margin-top: 2px; /* 位置調整 */
+        }
+        
+        .log-count { 
+            color: #888; font-weight: 700; font-size: 1.05rem; 
+            text-align: center; margin-right: 4px;
+            line-height: 1.2;
+        }
+        
+        /* 構造変更：縦並びに対応 */
+        .log-content-wrapper {
+            display: flex; flex-direction: column; /* 縦並び */
+            align-items: flex-start; 
+            gap: 2px;
+            overflow: hidden; 
+        }
+        
+        .log-main-line { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; overflow: hidden; max-width: 100%; }
+        
+        .log-memo-line { 
+            font-size: 0.75rem; color: #666; 
+            white-space: pre-wrap; word-break: break-all; 
+            line-height: 1.3; 
+            margin-top: 2px;
+        }
+
+        .text-location { font-size: 1.05rem; font-weight: 700; color: #fff; }
+        .text-vehicle { font-size: 1.05rem; font-weight: 700; color: #fff; }
+        .log-separator, .log-label-no { color: #666; font-size: 0.85rem; font-weight: bold; }
+        .text-profile { font-size: 0.75rem; color: #666; margin-left: 4px; } /* #666に変更 */
+
+        .log-actions { display: flex; gap: 4px; justify-content: flex-end; /* align-self: flex-start; 削除 */ margin-top: 0; }
+        
+        .author-icon-list {
+            width: 28px; height: 28px; border-radius: 50%; 
+            border: 1px solid #444; object-fit: cover;
+            margin-top: 2px;
+        }
+        
+        .icon-btn { 
+            background: transparent; border: none; color: #666; 
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            cursor: pointer; display: flex; align-items: center; justify-content: center; 
+            transition: all 0.2s; 
+        }
+        .icon-btn:hover { 
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #fff; 
+        }
+        .icon-btn .material-symbols-outlined { font-size: 1.2rem; }
+
+        .daily-summary-box { padding: 10px; border-bottom: 1px solid #333; background: #111; }
+        .status-table { width: 100%; border-collapse: collapse; margin-top: 0; }
+        .status-table th, .status-table td { border: 1px solid #444; padding: 8px; text-align: center; font-size: 0.85rem; color: #eee; }
+        .status-table th { background: #222; color: #aaa; }
+        .profile-badge-small { display: block; font-size: 0.65rem; color: #999; margin-top: 4px; }
+        .th-profile-sub { display: block; font-size: 0.7rem; color: #888; font-weight: normal; margin-top: 2px; }
+
+        /* Footer Styles */
+        .app-footer { margin-top: 50px; padding: 20px 0; border-top: 1px solid #222; font-size: 0.75rem; color: #555; letter-spacing: 1px; }
+        .footer-app-name { font-size: 1rem; font-weight: bold; color: #ccc; margin-bottom: 8px; font-family: var(--font-display); }
+        .footer-version { font-size: 0.75rem; color: #666; margin-bottom: 4px; }
+        .disclaimer { font-size: 0.7rem; color: #444; margin-top: 5px; }
+        .app-footer a { color: #888; text-decoration: none; border-bottom: 1px dotted #666; transition: 0.2s; }
+        .app-footer a:hover { color: #fff; border-bottom-style: solid; }
     </style>
 </head>
 <body>
-
-    <div class="app-container">
-        <!-- HEADER -->
-        <header class="app-header">
-            <h1 class="app-title">TOT LOGGER</h1>
-            <div class="header-actions">
-                <div id="user-display" style="display:none;">
-                    <img id="header-user-icon" class="user-icon-btn">
-                </div>
-                <button id="header-login-btn" class="btn-text" style="color:#fff; font-size:0.8rem; border:1px solid #444; border-radius:15px;">LOGIN</button>
-            </div>
+    <div class="main-wrapper">
+        <header>
+            <h1>TOT LOGGER</h1>
         </header>
 
-        <!-- MAIN CONTENT AREA -->
-        <main class="main-content">
-            
-            <!-- VIEW: MY LOG (Default) -->
-            <div id="view-history" class="view-section active">
-                <div id="history-loading" style="text-align:center; padding:20px; color:#666;">読み込み中...</div>
-                <div id="history-list" class="log-list-container"></div>
-                <!-- 空の状態 -->
-                <div id="history-empty" style="display:none; text-align:center; padding:40px; color:#666;">
-                    <span class="material-symbols-outlined" style="font-size:3rem; margin-bottom:10px;">history_edu</span>
-                    <p>まだ記録がありません。<br>右下の＋ボタンから記録しましょう。</p>
+        <main class="app-container">
+            <!-- ユーザー・日付設定セクション -->
+            <section class="config-section">
+                <div class="user-settings-area" id="user-card">
+                    <div id="login-container">
+                        <button id="login-btn" class="btn sign-in-btn">
+                            <span class="material-symbols-outlined">login</span>
+                            <span>サインイン</span>
+                        </button>
+                    </div>
+                    <div id="user-info" style="display: none;">
+                        <div class="user-info-left">
+                            <img id="user-icon" src="" alt="User" class="user-icon-img">
+                            <div class="user-text">
+                                <div id="user-name"></div>
+                                <div id="user-screen-name"></div>
+                            </div>
+                        </div>
+                        <button id="logout-btn" class="logout-icon-btn">
+                            <span class="material-symbols-outlined">logout</span>
+                        </button>
+                    </div>
                 </div>
-            </div>
 
-            <!-- VIEW: PUBLIC LOG -->
-            <div id="view-public" class="view-section">
-                <div class="public-tabs">
-                    <button class="p-tab active" data-tab="status">運営状況</button>
-                    <button class="p-tab" data-tab="logs">みんなのログ</button>
+                <div class="date-counter-area">
+                    <div class="date-row"><input type="date" id="visit-date"></div>
+                    <div class="counter-ui">
+                        <button class="counter-btn" id="btn-count-minus">−</button>
+                        <div class="counter-display"><span id="count-val">1</span><span class="unit">回目</span></div>
+                        <button class="counter-btn" id="btn-count-plus">＋</button>
+                    </div>
+                    <div class="time-section-fixed">
+                        <div id="time-widget" class="time-widget">
+                            <div class="time-placeholder"><span class="material-symbols-outlined">schedule</span> 時刻を追加</div>
+                            <div class="time-editor" onclick="event.stopPropagation()">
+                                <input type="time" id="visit-time">
+                                <button class="time-clear-btn"><span class="material-symbols-outlined">close</span></button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div id="public-content">
-                    <p style="text-align:center; color:#666; margin-top:20px;">読み込み中...</p>
-                </div>
-            </div>
+            </section>
 
+            <!-- 入力セクション -->
+            <section class="input-section">
+                <div id="block-floor" class="input-block">
+                    <div class="label">
+                        <div class="label-left">フロア <span class="error-icon material-symbols-outlined">error</span></div>
+                        <span class="label-right">FLOOR</span>
+                    </div>
+                    <div class="grid-2">
+                        <button class="btn floor-btn" id="floor-1" data-floor="1">1F</button>
+                        <button class="btn floor-btn" id="floor-2" data-floor="2">2F</button>
+                    </div>
+                </div>
+
+                <div id="block-tour" class="input-block">
+                    <div class="label">
+                        <div class="label-left">ツアー <span class="error-icon material-symbols-outlined">error</span></div>
+                        <span class="label-right">TOUR</span>
+                    </div>
+                    <div class="grid-3">
+                        <button id="tour-btn-A" class="btn tour-btn">A</button>
+                        <button id="tour-btn-B" class="btn tour-btn">B</button>
+                        <button id="tour-btn-C" class="btn tour-btn">C</button>
+                    </div>
+                    <div class="status-bar-wrapper">
+                        <div class="status-bar"><span id="room-name">フロアを選択</span></div>
+                    </div>
+                </div>
+
+                <div id="block-vehicle" class="input-block">
+                    <div class="label">
+                        <div class="label-left">機体番号 <span class="error-icon material-symbols-outlined">error</span></div>
+                        <span class="label-right">VEHICLE NO.</span>
+                    </div>
+                    <div id="vehicle-container" class="vehicle-grid"></div>
+                </div>
+
+                <div id="block-profile" class="input-block">
+                    <div class="label">
+                        <div class="label-left">落下プロファイル <span class="error-icon material-symbols-outlined">error</span></div>
+                        <span class="label-right">DROP PROFILE</span>
+                    </div>
+                    <div class="profile-options">
+                        <button id="prof-std" class="btn profile-btn" data-profile="TOWER 1">通常版</button>
+                        <button id="prof-l13" class="btn profile-btn" data-profile="TOWER 2">Level 13</button>
+                        <button id="prof-shadow" class="btn profile-btn" data-profile="TOWER 3">シャドウ</button>
+                        <button id="prof-unknown" class="btn profile-btn" data-profile="UNKNOWN">不明</button>
+                    </div>
+                </div>
+
+                <div class="suspension-area">
+                    <div class="label">
+                        <div class="label-left">運営休止ツアー</div>
+                        <span class="label-right">SUSPENDED</span>
+                    </div>
+                    <div class="suspend-btn-container">
+                        <button id="suspend-btn-A" class="suspend-btn">A</button>
+                        <button id="suspend-btn-B" class="suspend-btn">B</button>
+                        <button id="suspend-btn-C" class="suspend-btn">C</button>
+                    </div>
+                </div>
+
+                <div class="memo-area">
+                    <div class="label">
+                        <div class="label-left">メモ</div>
+                        <span class="label-right">MEMO</span>
+                    </div>
+                    <textarea id="memo-input" placeholder="メモを入力..."></textarea>
+                </div>
+
+                <div class="action-area">
+                    <button id="submit-btn" class="submit-btn">記録する</button>
+                    <button id="cancel-btn" class="cancel-btn" style="display:none;">キャンセル</button>
+                </div>
+            </section>
+
+            <!-- ログ管理セクション -->
+            <div class="data-manager-separator"></div>
+            <section class="data-manager">
+                <details class="main-accordion" id="my-log-accordion">
+                    <summary class="menu-trigger-summary">
+                        <div class="menu-title-group">
+                            <span class="material-symbols-outlined">person</span> 
+                            <span class="menu-title-ja">マイログ</span>
+                        </div>
+                        <span id="history-arrow" class="material-symbols-outlined arrow-icon">expand_circle_down</span>
+                    </summary>
+                    <div class="history-content-wrapper">
+                        <div id="history-log"></div>
+                    </div>
+                </details>
+                
+                <div class="menu-trigger-card shared-trigger">
+                    <div class="menu-title-group"><span class="material-symbols-outlined">group</span> <span class="menu-title-ja">みんなのログ</span></div>
+                    <span class="material-symbols-outlined arrow-icon">open_in_new</span>
+                </div>
+            </section>
         </main>
 
-        <!-- BOTTOM NAV -->
-        <nav class="bottom-nav">
-            <button class="nav-item active" data-target="view-history">
-                <span class="material-symbols-outlined">account_circle</span>
-                <span class="nav-label">マイログ</span>
-            </button>
-            <button class="nav-item" data-target="view-public">
-                <span class="material-symbols-outlined">public</span>
-                <span class="nav-label">みんなのログ</span>
-            </button>
-        </nav>
-
-        <!-- FAB -->
-        <button id="fab-record" class="fab">
-            <span class="material-symbols-outlined">add</span>
-        </button>
-    </div>
-
-    <!-- RECORD MODAL (Overlay) -->
-    <div id="record-modal" class="record-modal">
-        <header class="modal-header">
-            <button id="modal-close-btn" class="btn-text">
-                <span class="material-symbols-outlined">close</span>
-            </button>
-            <span class="modal-title">New Record</span>
-            <button id="modal-save-btn" class="btn-action">記録する</button>
-        </header>
-
-        <div class="modal-body">
-            
-            <!-- STEP 1: Location -->
-            <div id="step-1" class="step-container active">
-                <div style="text-align:center; margin-bottom:15px; color:#888;">ツアーとフロアを選択</div>
-                <div class="location-grid">
-                    <!-- A -->
-                    <div class="loc-col">
-                        <div class="loc-head">A</div>
-                        <button class="loc-btn" data-tour="A" data-floor="2"><span class="tour-char">A</span><span class="floor-num">2F</span></button>
-                        <button class="loc-btn" data-tour="A" data-floor="1"><span class="tour-char">A</span><span class="floor-num">1F</span></button>
+        <!-- モーダル群 -->
+        <div id="shared-db-modal" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="modal-title-group">
+                        <span class="material-symbols-outlined">group</span>
+                        <h2>みんなのログ</h2>
                     </div>
-                    <!-- B -->
-                    <div class="loc-col">
-                        <div class="loc-head">B</div>
-                        <button class="loc-btn" data-tour="B" data-floor="2"><span class="tour-char">B</span><span class="floor-num">2F</span></button>
-                        <button class="loc-btn" data-tour="B" data-floor="1"><span class="tour-char">B</span><span class="floor-num">1F</span></button>
-                    </div>
-                    <!-- C -->
-                    <div class="loc-col">
-                        <div class="loc-head">C</div>
-                        <button class="loc-btn" data-tour="C" data-floor="2"><span class="tour-char">C</span><span class="floor-num">2F</span></button>
-                        <button class="loc-btn" data-tour="C" data-floor="1"><span class="tour-char">C</span><span class="floor-num">1F</span></button>
+                    <div class="modal-header-actions">
+                        <button class="header-icon-btn refresh-btn"><span class="material-symbols-outlined">refresh</span></button>
+                        <button class="header-icon-btn modal-close-btn"><span class="material-symbols-outlined">close</span></button>
                     </div>
                 </div>
-            </div>
-
-            <!-- STEP 2: Vehicle -->
-            <div id="step-2" class="step-container">
-                <div style="display:flex; justify-content:space-between; margin-bottom:15px; align-items:center;">
-                    <button class="btn-text step-back" data-to="step-1"><span class="material-symbols-outlined">arrow_back</span> 戻る</button>
-                    <span style="color:#888;">機体番号を選択</span>
-                    <div style="width:60px;"></div>
+                <div class="tab-group">
+                    <button class="tab-btn active" data-tab="logs">搭乗ログ</button>
+                    <button class="tab-btn" data-tab="status">運営状況</button>
                 </div>
-                <div class="vehicle-grid" id="veh-grid">
-                    <!-- JS Generated -->
-                </div>
-            </div>
-
-            <!-- STEP 3: Confirm -->
-            <div id="step-3" class="step-container">
-                <div style="display:flex; justify-content:space-between; margin-bottom:15px; align-items:center;">
-                    <button class="btn-text step-back" data-to="step-2"><span class="material-symbols-outlined">arrow_back</span> 戻る</button>
-                    <span style="color:#888;">内容確認</span>
-                    <div style="width:60px;"></div>
-                </div>
-                
-                <div class="confirm-card">
-                    <div class="confirm-main">
-                        <span id="disp-tour">A</span>-<span id="disp-floor">1</span>
-                        <span style="color:#444; margin:0 5px;">/</span>
-                        <span class="font-stencil">No.<span id="disp-veh">1</span></span>
-                    </div>
-                    <div class="confirm-sub">
-                        <span id="disp-date"></span> • <span id="disp-count"></span>回目
-                    </div>
-                </div>
-
-                <div class="form-section">
-                    <span class="section-label">落下プロファイル (自動判定)</span>
-                    <div class="profile-badges">
-                        <button class="p-badge" data-val="TOWER 1">通常版</button>
-                        <button class="p-badge" data-val="TOWER 2">Level 13</button>
-                        <button class="p-badge" data-val="TOWER 3">シャドウ</button>
-                        <button class="p-badge" data-val="UNKNOWN">不明</button>
-                    </div>
-                </div>
-
-                <div class="form-section">
-                    <span class="section-label">メモ</span>
-                    <input type="text" id="input-memo" class="memo-input" placeholder="ひとこと...">
-                </div>
-            </div>
-
-            <div class="step-indicator">
-                <div class="dot active" id="dot-1"></div>
-                <div class="dot" id="dot-2"></div>
-                <div class="dot" id="dot-3"></div>
+                <div id="shared-content-area" class="shared-list"></div>
             </div>
         </div>
+
+        <div id="custom-confirm-modal" class="modal-overlay" style="z-index: 2000;">
+            <div class="modal-content confirm-modal-content">
+                <div class="confirm-body">
+                    <span class="material-symbols-outlined confirm-icon">help</span>
+                    <p id="confirm-message" class="confirm-text"></p>
+                </div>
+                <div class="confirm-actions">
+                    <button id="confirm-cancel-btn" class="btn-text">キャンセル</button>
+                    <button id="confirm-ok-btn" class="btn-primary">OK</button>
+                </div>
+            </div>
+        </div>
+
+        <footer class="app-footer">
+            <p class="footer-app-name">TOT LOGGER</p>
+            <p class="footer-version">Ver.1.0</p>
+            <p class="disclaimer">Created by <a href="https://x.com/tamagineer" target="_blank" rel="noopener">Tamas (@tamagineer)</a></p>
+        </footer>
     </div>
 
-    <!-- TOAST -->
-    <div id="toast" class="toast">
-        <span class="material-symbols-outlined">check_circle</span>
-        <span id="toast-msg">Saved</span>
-    </div>
-
-    <!-- SCRIPT -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, setDoc, getDocs, getDoc, doc, onSnapshot, query, orderBy, serverTimestamp, limit, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-        import { getAuth, signInWithPopup, signOut, TwitterAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, setDoc, getDocs, getDoc, doc, onSnapshot, query, orderBy, serverTimestamp, where, limit } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, signInWithPopup, TwitterAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-        // --- CONFIG & STATE ---
-        const CONSTANTS = {
-            PROFILES: { 'TOWER 1': '通常版', 'TOWER 2': 'Level 13', 'TOWER 3': 'シャドウ', 'UNKNOWN': '不明' }
-        };
-        const State = {
-            user: null, logs: [], specialSchedules: [],
-            input: { date: '', count: 1, tour: null, floor: null, vehicle: null, profile: 'TOWER 1', memo: '' },
-            currentTab: 'view-history'
-        };
-
-        // --- FIREBASE SETUP ---
+        // ==========================================
+        //  Firebase Configuration
+        // ==========================================
         const firebaseConfig = {
           apiKey: "AIzaSyD4OXJQwa2YWfxbGS--qqz9ddi0VNio0xg",
           authDomain: "tot-logger.firebaseapp.com",
@@ -430,379 +729,876 @@
           messagingSenderId: "485860677602",
           appId: "1:485860677602:web:e11380515fd9f1805ecbbb"
         };
+
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
 
-        // --- UI LOGIC ---
-        const UI = {
-            init() {
-                // Tab Switching
-                document.querySelectorAll('.nav-item').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        this.switchTab(btn.dataset.target);
-                    });
-                });
+        // Constants
+        const CONSTANTS = {
+            ROOMS: { 'A-1': '絵画', 'A-2': '古代の武器', 'B-1': '鎧', 'B-2': '建築工芸品', 'C-1': 'タペストリー', 'C-2': '仮面' },
+            PROFILES: { 'TOWER 1': '通常版', 'TOWER 2': 'Level 13', 'TOWER 3': 'シャドウ', 'UNKNOWN': '不明' },
+            MESSAGES: {
+                loginRequired: "サインインが必要です",
+                saveSuccess: "記録しました",
+                updateSuccess: "修正しました",
+                confirmDelete: "削除しますか？",
+                confirmReset: "日付を変更しますか？（入力内容と推奨設定がリセットされます）",
+                vehicle7Caution: "7号機は消失したと言われています。記録しますか？",
+                vehicleEmptyCaution: "機体番号が未選択です。「不明」として記録しますか？",
+                confirmEdit: "修正モードを開きますか？",
+                confirmPublish: "この記録を「みんなのログ」に公開しますか？",
+                confirmUnpublish: "非公開にしますか？",
+                confirmLogout: "サインアウトしますか？",
+                usedVehicleCaution: "この機体番号は本日すでに別の乗り場で記録されています。記録しますか？"
+            }
+        };
 
-                // FAB & Modal
-                document.getElementById('fab-record').addEventListener('click', () => {
-                    if(!State.user) { this.showToast('ログインが必要です', true); return; }
-                    this.resetInput();
-                    this.openModal();
-                });
-                document.getElementById('modal-close-btn').addEventListener('click', this.closeModal);
-                
-                // Auth
-                document.getElementById('header-login-btn').addEventListener('click', this.login);
-                document.getElementById('header-user-icon').addEventListener('click', () => {
-                    if(confirm("サインアウトしますか？")) this.logout();
-                });
+        // State
+        const State = {
+            user: null, logs: [], specialSchedules: [], publishedDates: new Set(), openHistoryDates: new Set(),
+            input: { count: 1, floor: null, tour: null, vehicle: null, profile: null, suspendedTours: [], memo: '' },
+            editingId: null, lastScrollPos: 0, isTimeInputVisible: false, scrollToId: null, sharedReports: [], 
+            currentSharedTab: 'logs',
+            lastSharedScrollPos: null, // 追加
+            isEditingFromShared: false // 追加
+        };
 
-                // Step 1: Location
-                document.querySelectorAll('.loc-btn').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        State.input.tour = btn.dataset.tour;
-                        State.input.floor = parseInt(btn.dataset.floor);
-                        this.goToStep(2);
-                    });
-                });
-
-                // Step 2: Vehicle Generator
-                const vGrid = document.getElementById('veh-grid');
-                for(let i=1; i<=9; i++){
-                    const b = document.createElement('button');
-                    b.className = 'veh-btn';
-                    b.innerText = i;
-                    b.onclick = () => { State.input.vehicle = i; this.goToStep(3); };
-                    vGrid.appendChild(b);
-                }
-
-                // Step 3: Back buttons
-                document.querySelectorAll('.step-back').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        const step = parseInt(btn.dataset.to.replace('step-', ''));
-                        this.goToStep(step);
-                    });
-                });
-
-                // Profile Select
-                document.querySelectorAll('.p-badge').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        State.input.profile = btn.dataset.val;
-                        this.updateProfileUI();
-                    });
-                });
-
-                // Save
-                document.getElementById('modal-save-btn').addEventListener('click', this.saveLog);
-
-                // Public Tabs
-                document.querySelectorAll('.p-tab').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        document.querySelectorAll('.p-tab').forEach(b => b.classList.remove('active'));
-                        e.target.classList.add('active');
-                        this.loadPublicLog(e.target.dataset.tab);
-                    });
-                });
-            },
-
-            switchTab(targetId) {
-                document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-                document.getElementById(targetId).classList.add('active');
-                document.querySelectorAll('.nav-item').forEach(btn => {
-                    btn.classList.toggle('active', btn.dataset.target === targetId);
-                });
-                if(targetId === 'view-public') this.loadPublicLog('status');
-            },
-
-            openModal() {
-                document.getElementById('record-modal').classList.add('open');
-                this.goToStep(1);
-            },
-            closeModal() {
-                document.getElementById('record-modal').classList.remove('open');
-            },
-
-            goToStep(stepNum) {
-                document.querySelectorAll('.step-container').forEach(el => el.classList.remove('active'));
-                document.getElementById(`step-${stepNum}`).classList.add('active');
-                
-                // Indicators
-                document.querySelectorAll('.dot').forEach((d, i) => {
-                    d.classList.toggle('active', i+1 === stepNum);
-                });
-
-                // Prepare Step 3
-                if (stepNum === 3) {
-                    this.prepareConfirm();
-                    document.getElementById('modal-save-btn').classList.add('active');
-                } else {
-                    document.getElementById('modal-save-btn').classList.remove('active');
-                }
-            },
-
-            resetInput() {
-                // Auto Date
+        // Logic
+        const Logic = {
+            // ローカル時間のYYYY-MM-DDを取得
+            getTodayStr: () => {
                 const d = new Date();
-                const today = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-                State.input.date = today;
-                
-                // Calc Count
-                const todaysLogs = State.logs.filter(l => l.date === today);
-                State.input.count = todaysLogs.length > 0 ? Math.max(...todaysLogs.map(l=>l.count)) + 1 : 1;
-                
-                // Reset others
-                State.input.tour = null;
-                State.input.floor = null;
-                State.input.vehicle = null;
-                State.input.memo = '';
-                
-                // Auto Profile
-                State.input.profile = this.getAutoProfile(today);
+                const year = d.getFullYear();
+                const month = ('0' + (d.getMonth() + 1)).slice(-2);
+                const day = ('0' + d.getDate()).slice(-2);
+                return `${year}-${month}-${day}`;
             },
-
-            getAutoProfile(dateStr) {
-                const schedules = State.specialSchedules || [];
-                const matched = schedules.find(s => dateStr >= s.start && dateStr <= s.end);
-                if (matched) {
-                    if(matched.type === 'L13') return 'TOWER 2';
-                    if(matched.type === 'SHADOW') return 'TOWER 3';
-                }
-                const m = new Date(dateStr).getMonth();
-                if(m <= 2) return 'TOWER 2'; // Default Jan-Mar logic
-                return 'TOWER 1';
+            getCurrentTimeStr: () => new Date().toTimeString().slice(0, 5),
+            getProgramType(dateStr) {
+                // configから読み込んだスケジュールに基づいて判定
+                // specialSchedules形式: [{start: "YYYY-MM-DD", end: "YYYY-MM-DD", type: "L13"|"SHADOW"|"UNLIMITED"|"NORMAL"}, ...]
+                if (!State.specialSchedules || State.specialSchedules.length === 0) return null;
+                const target = State.specialSchedules.find(s => dateStr >= s.start && dateStr <= s.end);
+                return target ? target.type : null;
             },
-
-            prepareConfirm() {
-                document.getElementById('disp-tour').innerText = State.input.tour;
-                document.getElementById('disp-floor').innerText = State.input.floor;
-                document.getElementById('disp-veh').innerText = State.input.vehicle;
-                document.getElementById('disp-date').innerText = State.input.date;
-                document.getElementById('disp-count').innerText = State.input.count;
-                document.getElementById('input-memo').value = State.input.memo;
-                this.updateProfileUI();
+            calculateNextState(dateStr) {
+                const dayLogs = State.logs.filter(l => l.date === dateStr);
+                if (dayLogs.length === 0) return { count: 1, suspendedTours: [] };
+                const maxLog = dayLogs.reduce((prev, curr) => (prev.count > curr.count) ? prev : curr);
+                return { count: maxLog.count + 1, suspendedTours: maxLog.suspended || [] };
             },
+            calculateDailyState(dateVal, excludeId = null) {
+                const dayLogs = State.logs.filter(l => l.date === dateVal && l.id !== excludeId);
+                const assignments = {};
+                const suspendedSet = new Set();
+                const shaftHistory = { A: null, B: null, C: null };
+                const usedVehiclesInOtherPlaces = new Set(); // 他の場所で使われている機体番号
 
-            updateProfileUI() {
-                document.querySelectorAll('.p-badge').forEach(btn => {
-                    btn.classList.toggle('selected', btn.dataset.val === State.input.profile);
+                dayLogs.forEach(log => {
+                    if (log.tour && log.floor && log.vehicle) {
+                        assignments[`${log.tour}-${log.floor}`] = log.vehicle;
+                        // 機体番号の使用状況を収集（場所ごとのマッピング用）
+                    }
+                    if (log.suspended) log.suspended.forEach(t => suspendedSet.add(t));
+                    if (log.tour) suspendedSet.delete(log.tour);
+                    if (log.tour && log.profile && log.profile !== 'UNKNOWN') shaftHistory[log.tour] = log.profile;
                 });
-            },
-
-            async saveLog() {
-                if(!State.user) return;
-                const btn = document.getElementById('modal-save-btn');
-                btn.innerText = "保存中...";
                 
-                try {
-                    const d = new Date();
-                    const timeStr = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-                    
-                    const data = {
-                        date: State.input.date,
-                        time: timeStr,
-                        count: State.input.count,
-                        tour: State.input.tour,
-                        floor: State.input.floor,
-                        vehicle: State.input.vehicle,
-                        profile: State.input.profile,
-                        memo: document.getElementById('input-memo').value,
-                        author: { uid: State.user.uid, name: State.user.displayName, photoURL: State.user.photoURL },
-                        createdAt: serverTimestamp()
+                return { assignments, suspended: { A: suspendedSet.has('A'), B: suspendedSet.has('B'), C: suspendedSet.has('C') }, shaftHistory };
+            },
+            analyzeProfileStatus(dateStr, tour) {
+                const daily = this.calculateDailyState(dateStr, State.editingId);
+                
+                // 1. 既存ログによる優先判定（同じツアーで確定済みのプロファイルがあればそれを優先）
+                if (daily.shaftHistory[tour]) {
+                    const established = daily.shaftHistory[tour];
+                    const allProfiles = Object.keys(CONSTANTS.PROFILES);
+                    return { 
+                        defaultProfile: established, 
+                        cautionProfiles: allProfiles.filter(k => k !== established) 
                     };
+                }
 
-                    await addDoc(collection(db, "logs"), data);
+                // 2. スペシャルプログラム判定
+                const program = this.getProgramType(dateStr);
+                
+                // ルールA: L13期間
+                if (program === 'L13') {
+                    return { defaultProfile: 'TOWER 2', cautionProfiles: ['TOWER 1', 'TOWER 3', 'UNKNOWN'] };
+                }
+                
+                // ルールB: SHADOW期間
+                if (program === 'SHADOW') {
+                    return { defaultProfile: 'TOWER 3', cautionProfiles: ['TOWER 1', 'TOWER 2', 'UNKNOWN'] };
+                }
+                
+                // ルールC: UNLIMITED期間 または (未登録 && 1-4月)
+                const month = parseInt(dateStr.split('-')[1], 10);
+                const isSpring = (month >= 1 && month <= 4);
+                
+                if (program === 'UNLIMITED' || (!program && isSpring)) {
+                    // デフォルトは不明。すべて警告なしで選択可能とする
+                    return { defaultProfile: 'UNKNOWN', cautionProfiles: [] };
+                }
+                
+                // ルールD: NORMAL または その他（通常営業）
+                return { defaultProfile: 'TOWER 1', cautionProfiles: ['TOWER 2', 'TOWER 3', 'UNKNOWN'] };
+            }
+        };
+
+        // Helper Function: 日ごとのサマリーテーブルHTML生成
+        function generateDailySummaryHTML(logs, dateStr, externalSuspended = null) {
+            const tourData = { A: {floors:{}, profiles:new Set()}, B: {floors:{}, profiles:new Set()}, C: {floors:{}, profiles:new Set()} };
+            const suspended = { A: false, B: false, C: false };
+            if (externalSuspended) externalSuspended.forEach(t => suspended[t] = true);
+            
+            logs.forEach(log => {
+                if(!tourData[log.tour]) return;
+                if (log.floor && log.vehicle) tourData[log.tour].floors[log.floor] = log.vehicle;
+                if (log.suspended) log.suspended.forEach(t => suspended[t] = true);
+                if (log.profile) tourData[log.tour].profiles.add(log.profile); // UNKNOWNも一旦入れる
+            });
+
+            const getCell = (tour, floor) => {
+                if (suspended[tour]) return '<span style="color:#ff5555;">×</span>';
+                const v = tourData[tour].floors[floor];
+                return v ? `<span style="font-weight:bold;">${v}</span>` : '-';
+            };
+
+            // プロファイル混在期間判定 (Rule Cに準拠)
+            const program = Logic.getProgramType(dateStr);
+            const month = parseInt(dateStr.split('-')[1], 10);
+            const isSpring = (month >= 1 && month <= 4);
+            const showProfiles = (program === 'UNLIMITED' || (!program && isSpring));
+
+            const getProfileDisplay = (tour) => {
+                if (!showProfiles) return '';
+                if (suspended[tour]) return '<br><span class="th-profile-sub">-</span>';
+                
+                // UNKNOWNを除外したリストを作成
+                const profiles = Array.from(tourData[tour].profiles);
+                const visibleProfiles = profiles.filter(p => p !== 'UNKNOWN');
+                
+                // UNKNOWNしか無い場合はUNKNOWNを表示対象にする
+                if (visibleProfiles.length === 0 && profiles.includes('UNKNOWN')) {
+                    visibleProfiles.push('UNKNOWN');
+                }
+                
+                if (visibleProfiles.length === 0) return '<br><span class="th-profile-sub">-</span>';
+                
+                // 表示名に変換して結合
+                const displayNames = visibleProfiles.map(p => CONSTANTS.PROFILES[p] || p);
+                return `<br><span class="th-profile-sub">${displayNames.join('・')}</span>`;
+            };
+
+            return `
+            <div class="daily-summary-box">
+                <table class="status-table">
+                    <thead>
+                        <tr>
+                            <th class="row-header"></th>
+                            <th>TOUR A${getProfileDisplay('A')}</th>
+                            <th>TOUR B${getProfileDisplay('B')}</th>
+                            <th>TOUR C${getProfileDisplay('C')}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><th class="row-header">2F</th><td>${getCell('A', 2)}</td><td>${getCell('B', 2)}</td><td>${getCell('C', 2)}</td></tr>
+                        <tr><th class="row-header">1F</th><td>${getCell('A', 1)}</td><td>${getCell('B', 1)}</td><td>${getCell('C', 1)}</td></tr>
+                    </tbody>
+                </table>
+            </div>`;
+        }
+
+        // UI Manager
+        const UIManager = {
+            els: {},
+            init() {
+                this.els = {
+                    date: document.getElementById('visit-date'), time: document.getElementById('visit-time'), count: document.getElementById('count-val'),
+                    roomName: document.getElementById('room-name'), memo: document.getElementById('memo-input'),
+                    vehicleContainer: document.getElementById('vehicle-container'), historyContainer: document.getElementById('history-log'),
+                    submitBtn: document.getElementById('submit-btn'), cancelBtn: document.getElementById('cancel-btn'),
+                    sharedModal: document.getElementById('shared-db-modal'), sharedTabs: document.querySelectorAll('.tab-btn'), sharedContent: document.getElementById('shared-content-area')
+                };
+                this.els.date.value = Logic.getTodayStr();
+                this.handleDateChange(false);
+            },
+            updateAll() {
+                document.body.classList.toggle('editing-mode', !!State.editingId);
+                this.updateRoomDisplay(); this.updateSelectionStyles(); this.updateVehicleGrid(); this.renderHistory();
+                this.els.count.innerText = State.input.count; this.els.memo.value = State.input.memo;
+                this.updateEditModeUI(); this.updateTimeUI();
+            },
+            updateTimeUI() {
+                const w = document.getElementById('time-widget');
+                State.isTimeInputVisible ? w.classList.add('active') : w.classList.remove('active');
+            },
+            activateTimeInput() {
+                State.isTimeInputVisible = true;
+                if (!this.els.time.value) this.els.time.value = Logic.getCurrentTimeStr();
+                this.updateAll();
+                setTimeout(() => { 
+                    this.els.time.focus(); 
+                    if('showPicker' in HTMLInputElement.prototype) {
+                        try { this.els.time.showPicker(); } catch(e){}
+                    }
+                }, 100);
+            },
+            deactivateTimeInput() { State.isTimeInputVisible = false; this.els.time.value = ''; this.updateAll(); },
+            async handleDateChange(showConfirm = true) {
+                if (showConfirm && !await this.showConfirmModal(CONSTANTS.MESSAGES.confirmReset)) return;
+                this.resetInput(true);
+            },
+            resetInput(clearSuspended = false) {
+                const wasEditing = !!State.editingId;
+                const returnToShared = State.isEditingFromShared; // フラグを保持しておく
+                const scrollPos = State.lastSharedScrollPos;
+
+                State.editingId = null;
+                const dateVal = this.els.date.value;
+                const nextState = Logic.calculateNextState(dateVal);
+                State.input = { count: nextState.count, floor: null, tour: null, vehicle: null, profile: null, suspendedTours: clearSuspended ? [] : nextState.suspendedTours, memo: '' };
+                this.deactivateTimeInput(); this.updateAll();
+                ['block-floor', 'block-tour', 'block-vehicle', 'block-profile'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if(el) el.classList.remove('input-missing');
+                });
+
+                // 修正モードを抜けたら元の位置へ戻る
+                if (wasEditing) {
+                    // 本体のスクロール位置復帰
+                    setTimeout(() => window.scrollTo({ top: State.lastScrollPos, behavior: 'smooth' }), 100);
+
+                    // 共有ログから来ていた場合の復帰処理
+                    if (returnToShared) {
+                         // 少し待ってからモーダルを開く（本体スクロールとの干渉を防ぐため微調整が必要かも）
+                         setTimeout(async () => {
+                             await UIManager.openSharedModal(); // 再読み込み＆オープン
+                             // スクロール位置復元
+                             const sharedList = document.getElementById('shared-content-area');
+                             if(sharedList) sharedList.scrollTop = scrollPos;
+                         }, 300); // タイミング調整
+                    }
+                }
+                
+                // フラグ初期化
+                State.isEditingFromShared = false;
+                State.lastSharedScrollPos = null;
+            },
+            async openSharedModal() { 
+                history.pushState({ modal: 'shared' }, '', ''); 
+                State.currentSharedTab = 'logs';
+                document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === 'logs'));
+                this.els.sharedModal.classList.add('active'); 
+                document.body.classList.add('modal-open'); 
+                await window.loadSharedReports(); // awaitを追加
+            },
+            closeSharedModal() { this.els.sharedModal.classList.remove('active'); document.body.classList.remove('modal-open'); },
+            setLoading(loading) { this.els.submitBtn.classList.toggle('loading', loading); this.els.submitBtn.innerText = loading ? "送信中..." : (State.editingId ? "修正を保存" : "記録する"); },
+            updateRoomDisplay() {
+                const { tour, floor } = State.input;
+                if (tour && floor) { this.els.roomName.innerText = CONSTANTS.ROOMS[`${tour}-${floor}`] || `${tour}-${floor}`; this.els.roomName.style.color = "#fff"; }
+                else { this.els.roomName.innerText = floor ? "ツアーを選択" : "フロアを選択"; this.els.roomName.style.color = "#555"; }
+            },
+            updateSelectionStyles() {
+                const s = State.input;
+                const daily = Logic.calculateDailyState(this.els.date.value, State.editingId);
+                if(s.floor) document.getElementById('block-floor').classList.remove('input-missing');
+                if(s.tour) document.getElementById('block-tour').classList.remove('input-missing');
+                if(s.vehicle) document.getElementById('block-vehicle').classList.remove('input-missing');
+                if(s.profile) document.getElementById('block-profile').classList.remove('input-missing');
+                document.querySelectorAll('.floor-btn').forEach(b => b.classList.toggle('selected', s.floor == b.dataset.floor));
+                ['A', 'B', 'C'].forEach(t => {
+                    const b = document.getElementById(`tour-btn-${t}`);
+                    if (b) {
+                        b.classList.toggle('selected', s.tour === t);
+                        b.classList.toggle('btn-suspended-view', s.suspendedTours.includes(t));
+                        b.classList.toggle('btn-caution', !s.suspendedTours.includes(t) && daily.suspended[t]);
+                    }
+                });
+                const analysis = s.tour ? Logic.analyzeProfileStatus(this.els.date.value, s.tour) : { cautionProfiles: [] };
+                document.querySelectorAll('.profile-btn').forEach(b => {
+                    b.classList.toggle('selected', s.profile === b.dataset.profile);
+                    b.classList.toggle('btn-caution', analysis.cautionProfiles.includes(b.dataset.profile));
+                });
+                ['A', 'B', 'C'].forEach(t => document.getElementById(`suspend-btn-${t}`).classList.toggle('active', s.suspendedTours.includes(t)));
+            },
+            updateVehicleGrid() {
+                const container = this.els.vehicleContainer; container.innerHTML = '';
+                const { tour, floor } = State.input;
+                const currentKey = (tour && floor) ? `${tour}-${floor}` : null;
+                const daily = Logic.calculateDailyState(this.els.date.value, State.editingId);
+                
+                // 他の乗り場で使用されている機体番号のセットを作成
+                const usedInOtherPlaces = new Set();
+                if (currentKey) {
+                    Object.entries(daily.assignments).forEach(([key, val]) => {
+                        if (key !== currentKey) usedInOtherPlaces.add(parseInt(val));
+                    });
+                }
+
+                for (let i = 1; i <= 9; i++) {
+                    const btn = document.createElement('button'); btn.className = 'btn vehicle-btn';
                     
-                    // Share to Public (Simplified: Auto update shared doc)
-                    await UI.updatePublicDoc(data.date);
+                    if (i === 9) {
+                        btn.classList.add('btn-caution');
+                        btn.innerHTML = '<span style="font-size: 0.9rem;">不明</span>';
+                        if (State.input.vehicle === '不明') btn.classList.add('selected');
+                        btn.onclick = () => window.handleVehicleClick('不明', false, false);
+                    } else {
+                        btn.innerHTML = i;
+                        let caution = (i === 7 || (currentKey && daily.assignments[currentKey] && daily.assignments[currentKey] != i));
+                        let isUsedElsewhere = usedInOtherPlaces.has(i);
 
-                    UI.showToast("記録しました");
-                    UI.closeModal();
-
-                } catch(e) {
-                    console.error(e);
-                    UI.showToast("エラーが発生しました", true);
-                } finally {
-                    btn.innerText = "記録する";
+                        if (isUsedElsewhere) {
+                            btn.classList.add('btn-used');
+                        } else if (caution) {
+                            btn.classList.add('btn-caution');
+                        }
+                        
+                        if (State.input.vehicle == i) btn.classList.add('selected');
+                        
+                        // クリック時の挙動
+                        btn.addEventListener('click', () => {
+                            let msg = null;
+                            if (i === 7) msg = CONSTANTS.MESSAGES.vehicle7Caution;
+                            if (isUsedElsewhere) msg = CONSTANTS.MESSAGES.usedVehicleCaution;
+                            // 上書き警告より使用済み警告を優先
+                            if (!msg && caution && daily.assignments[currentKey]) {
+                                const oldVal = daily.assignments[currentKey];
+                                msg = `この乗り場には既に No.${oldVal} が登録されています。No.${i} に変更しますか？`;
+                            }
+                            
+                            window.handleVehicleClick(i, msg);
+                        });
+                    }
+                    container.appendChild(btn);
                 }
             },
+            updateEditModeUI() {
+                this.els.submitBtn.innerText = State.editingId ? "修正を保存" : "記録する";
+                this.els.cancelBtn.style.display = State.editingId ? "block" : "none"; 
+            },
+            renderHistory() {
+                const div = this.els.historyContainer; 
+                if (!State.logs.length) { 
+                    div.innerHTML = "<p style='color:#666; padding:0;'>記録なし</p>"; 
+                    return; 
+                }
+                const groups = {}; State.logs.forEach(l => { if (!groups[l.date]) groups[l.date] = []; groups[l.date].push(l); });
+                let html = '';
+                Object.keys(groups).sort((a,b)=>b.localeCompare(a)).forEach(date => {
+                    const isPub = State.publishedDates.has(date);
+                    const logs = groups[date];
+                    const summaryHTML = generateDailySummaryHTML(logs, date);
+                    html += `<details class="daily-log" ${State.openHistoryDates.has(date)?'open':''} data-date="${date}">
+                        <summary class="daily-summary">
+                            <div class="summary-left">
+                                <span class="material-symbols-outlined">chevron_right</span>
+                                <div class="summary-info"><span class="summary-date">${date}</span> <span class="summary-count">${groups[date].length}件</span></div>
+                            </div>
+                            <div class="summary-right">
+                                <span class="publish-status-text ${isPub ? 'active' : ''}">${isPub ? '公開中' : '非公開'}</span>
+                                <label class="toggle-switch-sm" onclick="event.stopPropagation();">
+                                    <input type="checkbox" ${isPub ? 'checked' : ''} onchange="window.handleTogglePublish('${date}', this)">
+                                    <span class="slider-sm"></span>
+                                </label>
+                            </div>
+                        </summary>
+                        <div class="history-content">
+                            ${summaryHTML}
+                            <div class="log-list">`;
+                    // 修正: 昇順にソート
+                    groups[date].sort((a,b)=>a.count-b.count).forEach(l => {
+                        const vehicleStr = l.vehicle ? l.vehicle : '--';
+                        const profileName = (l.profile && l.profile !== 'UNKNOWN' && l.profile !== 'TOWER 1') ? CONSTANTS.PROFILES[l.profile] : '';
+                        const memoHtml = l.memo ? `<div class="log-memo-line">${l.memo}</div>` : '';
+                        
+                        // hasMemoフラグに関わらずデフォルトのCSSクラスを適用（常に中央揃え）
+                        const gridClass = "log-grid log-grid-my";
 
-            // シンプルな共有ロジック: その日の自分のログをまとめて1つのPublicドキュメントにする
-            async updatePublicDoc(dateStr) {
-                // Fetch all my logs for this date
-                const q = query(collection(db, "logs"), where("author.uid", "==", State.user.uid), where("date", "==", dateStr));
-                const snap = await getDocs(q);
-                const logs = snap.docs.map(d => d.data());
-                
-                const summary = { A:{}, B:{}, C:{} };
-                logs.forEach(l => {
-                    if(l.tour && l.floor && l.vehicle) summary[l.tour][l.floor] = l.vehicle;
+                        html += `
+                        <div class="log-entry" id="log-${l.id}">
+                            <div class="${gridClass}">
+                                <div class="log-count">#${l.count}</div>
+                                <div class="log-time">${l.time||'--:--'}</div>
+                                <div class="log-content-wrapper">
+                                    <div class="log-main-line">
+                                        <span class="text-location">${l.tour}-${l.floor}F</span> 
+                                        <span class="log-separator">/</span> 
+                                        <span class="log-label-no">No.</span><span class="text-vehicle">${vehicleStr}</span>
+                                        ${profileName ? `<span class="text-profile">(${profileName})</span>` : ''}
+                                    </div>
+                                    ${memoHtml}
+                                </div>
+                                <div class="log-actions">
+                                    <button class="icon-btn" onclick="window.handleEditLog('${l.id}')"><span class="material-symbols-outlined">edit</span></button>
+                                    <button class="icon-btn" onclick="window.handleDeleteLog('${l.id}')"><span class="material-symbols-outlined">delete</span></button>
+                                </div>
+                            </div>
+                        </div>`;
+                    });
+                    html += `</div></div></details>`;
                 });
-
-                const publicId = `${dateStr}_${State.user.uid}`;
-                await setDoc(doc(db, "shared_reports", publicId), {
-                    date: dateStr,
-                    author: { uid: State.user.uid, name: State.user.displayName, photoURL: State.user.photoURL },
-                    summary: summary,
-                    logs: logs.map(l => ({time: l.time, tour: l.tour, floor: l.floor, vehicle: l.vehicle, profile: l.profile})),
-                    updatedAt: serverTimestamp()
-                });
-            },
-
-            async login() {
-                try { await signInWithPopup(auth, new TwitterAuthProvider()); } catch(e){ console.error(e); }
-            },
-            async logout() {
-                await signOut(auth);
-            },
-
-            showToast(msg, isError=false) {
-                const t = document.getElementById('toast');
-                document.getElementById('toast-msg').innerText = msg;
-                t.style.borderColor = isError ? '#f55' : '#4CAF50';
-                t.classList.add('show');
-                setTimeout(() => t.classList.remove('show'), 3000);
+                div.innerHTML = html;
+                div.querySelectorAll('details.daily-log').forEach(el => el.addEventListener('toggle', () => el.open ? State.openHistoryDates.add(el.dataset.date) : State.openHistoryDates.delete(el.dataset.date)));
             },
             
-            // --- RENDERERS ---
-            renderHistory() {
-                const container = document.getElementById('history-list');
-                const loading = document.getElementById('history-loading');
-                const empty = document.getElementById('history-empty');
-                
-                loading.style.display = 'none';
-                container.innerHTML = '';
-                
-                if (State.logs.length === 0) {
-                    empty.style.display = 'block';
+            renderSharedContent() {
+                const content = this.els.sharedContent;
+                if (!content) return;
+                if (State.sharedReports.length === 0) {
+                    content.innerHTML = `<div style="text-align:center; color:#666; padding:30px;">データがありません</div>`;
                     return;
                 }
-                empty.style.display = 'none';
 
-                // Group by Date
-                const groups = {};
-                State.logs.forEach(l => {
-                    if(!groups[l.date]) groups[l.date] = [];
-                    groups[l.date].push(l);
-                });
-
-                Object.keys(groups).sort((a,b)=>b.localeCompare(a)).forEach(date => {
-                    const logs = groups[date];
-                    const openAttr = (date === State.input.date) ? 'open' : ''; // Open today
-                    
-                    let html = `<details class="log-group" ${openAttr}>
-                        <summary class="log-summary">
-                            <div class="summary-left">
-                                <span class="material-symbols-outlined arrow-icon">chevron_right</span>
-                                <span>${date}</span>
-                            </div>
-                            <span style="color:#888; font-size:0.9rem;">${logs.length}件</span>
-                        </summary>
-                        <div class="log-items">`;
-                    
-                    logs.sort((a,b) => b.count - a.count).forEach(l => {
-                         html += `<div class="log-entry">
-                            <div class="log-content">
-                                <div class="log-main-text">
-                                    <span style="color:#aaa;">#${l.count}</span>
-                                    <span>${l.tour}-${l.floor}</span>
-                                    <span class="font-stencil">No.${l.vehicle}</span>
+                if (State.currentSharedTab === 'status') {
+                    let html = `
+                    <div class="status-scroll-wrapper">
+                        <table class="shared-status-table">
+                            <thead>
+                                <tr>
+                                    <th rowspan="2" class="fixed-col-date">日付</th>
+                                    <th colspan="2">TOUR A</th>
+                                    <th colspan="2">TOUR B</th>
+                                    <th colspan="2">TOUR C</th>
+                                    <th rowspan="2">投稿者</th>
+                                </tr>
+                                <tr><th>1F</th><th>2F</th><th>1F</th><th>2F</th><th>1F</th><th>2F</th></tr>
+                            </thead>
+                            <tbody>`;
+                    const sortedReports = [...State.sharedReports].sort((a,b) => b.date.localeCompare(a.date));
+                    sortedReports.forEach(r => {
+                        const s = r.summary || { A: {}, B: {}, C: {} };
+                        const suspended = r.suspended || [];
+                        const getVal = (t, f) => {
+                            if (suspended.includes(t)) return '<span class="td-suspended" style="color:#ff5555;">×</span>';
+                            return s[t] && s[t][f] ? s[t][f] : '-';
+                        };
+                        html += `
+                        <tr>
+                            <td class="fixed-col-date">${r.date.replace(/-/g, '/')}</td>
+                            <td>${getVal('A', 1)}</td><td>${getVal('A', 2)}</td>
+                            <td>${getVal('B', 1)}</td><td>${getVal('B', 2)}</td>
+                            <td>${getVal('C', 1)}</td><td>${getVal('C', 2)}</td>
+                            <td>
+                                <div class="author-info-mini">
+                                    <img src="${r.author.photoURL || ''}" class="author-icon-mini" onerror="this.style.display='none'">
+                                    <span class="author-name-mini">${r.author.name}</span>
                                 </div>
-                                <div class="log-sub-text">${l.time} • ${CONSTANTS.PROFILES[l.profile]}</div>
-                                ${l.memo ? `<div style="font-size:0.8rem; color:#666;">${l.memo}</div>` : ''}
-                            </div>
-                         </div>`;
+                            </td>
+                        </tr>`;
+                    });
+                    html += `</tbody></table></div>`;
+                    content.innerHTML = html;
+                } else {
+                    const allLogs = [];
+                    State.sharedReports.forEach(report => {
+                        if (report.logs) {
+                            report.logs.forEach(log => {
+                                allLogs.push({ ...log, date: report.date, author: report.author });
+                            });
+                        }
                     });
                     
-                    html += `</div></details>`;
-                    container.innerHTML += html;
-                });
-            },
-
-            async loadPublicLog(mode) {
-                const container = document.getElementById('public-content');
-                container.innerHTML = '<p style="text-align:center; padding:20px; color:#666;">読み込み中...</p>';
-                
-                try {
-                    const q = query(collection(db, "shared_reports"), orderBy("date", "desc"), limit(20));
-                    const snap = await getDocs(q);
-                    const reports = snap.docs.map(d => d.data());
+                    // 日付(降順) > 時刻(降順) でソート
+                    allLogs.sort((a, b) => b.date.localeCompare(a.date) || (b.time || "").localeCompare(a.time || ""));
                     
-                    if (reports.length === 0) { container.innerHTML = '<p style="text-align:center; padding:20px;">データなし</p>'; return; }
+                    const groupedLogs = {};
+                    allLogs.forEach(log => {
+                        if (!groupedLogs[log.date]) groupedLogs[log.date] = [];
+                        groupedLogs[log.date].push(log);
+                    });
+                    
+                    let html = `<div style="text-align:left;" class="shared-content-inner">`;
+                    Object.keys(groupedLogs).sort((a,b)=>b.localeCompare(a)).forEach(date => {
+                        html += `<div class="shared-date-header">${date.replace(/-/g, '/')}</div>`;
+                        
+                        // 修正: 昇順にソート ( (a.count || 0) - (b.count || 0) )
+                        const dailyLogs = groupedLogs[date].sort((a, b) => (a.count || 0) - (b.count || 0));
+                        
+                        dailyLogs.forEach(l => {
+                             const vehicleStr = l.vehicle ? l.vehicle : '--'; 
+                             const profileName = (l.profile && l.profile !== 'UNKNOWN' && l.profile !== 'TOWER 1') ? CONSTANTS.PROFILES[l.profile] : '';
+                             const isMyLog = l.author?.uid === State.user?.uid;
+                             const memoHtml = l.memo ? `<div class="log-memo-line">${l.memo}</div>` : '';
+                             
+                             // hasMemoフラグに関わらずデフォルトのCSSクラスを適用（常に中央揃え）
+                             const gridClass = "log-grid log-grid-shared";
 
-                    if (mode === 'status') {
-                        let html = `<div style="overflow-x:auto;"><table class="status-table"><thead><tr><th>日付</th><th>A</th><th>B</th><th>C</th><th>User</th></tr></thead><tbody>`;
-                        reports.forEach(r => {
-                            const s = r.summary || {A:{}, B:{}, C:{}};
-                            const cell = (t) => {
-                                const f1 = s[t]?.[1] || '-';
-                                const f2 = s[t]?.[2] || '-';
-                                return `${f1} / ${f2}`;
-                            };
-                            html += `<tr><td>${r.date.slice(5)}</td><td>${cell('A')}</td><td>${cell('B')}</td><td>${cell('C')}</td><td><img src="${r.author.photoURL}" style="width:20px; border-radius:50%;"></td></tr>`;
+                             html += `
+                            <div class="log-entry shared-log-entry">
+                                <div class="${gridClass}">
+                                    <img src="${l.author.photoURL || ''}" class="author-icon-list" onerror="this.style.display='none'">
+                                    <div class="log-count">#${l.count}</div>
+                                    <div class="log-time">${l.time||'--:--'}</div>
+                                    <div class="log-content-wrapper">
+                                        <div class="log-main-line">
+                                            <span class="text-location">${l.tour}-${l.floor}F</span> 
+                                            <span class="log-separator">/</span> 
+                                            <span class="log-label-no">No.</span><span class="text-vehicle">${vehicleStr}</span>
+                                            ${profileName ? `<span class="text-profile">(${profileName})</span>` : ''}
+                                        </div>
+                                        ${memoHtml}
+                                    </div>
+                                    <div class="log-actions">
+                                        ${isMyLog ? `
+                                            <button class="icon-btn" onclick="window.handleEditLog('${l.id}')"><span class="material-symbols-outlined">edit</span></button>
+                                            <button class="icon-btn" onclick="window.handleDeleteLog('${l.id}')"><span class="material-symbols-outlined">delete</span></button>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            </div>`;
                         });
-                        html += '</tbody></table></div>';
-                        container.innerHTML = html;
-                    } else {
-                        // Logs Mode
-                        let html = '<div style="padding:10px;">';
-                        reports.forEach(r => {
-                            html += `<div style="margin-bottom:15px;">
-                                <div style="font-weight:bold; border-bottom:1px solid #333; margin-bottom:5px;">${r.date} by ${r.author.name}</div>`;
-                            (r.logs || []).forEach(l => {
-                                html += `<div style="display:flex; justify-content:space-between; font-size:0.9rem; padding:4px 0; color:#ccc;">
-                                    <span>${l.time}</span>
-                                    <span>${l.tour}-${l.floor} <span class="font-stencil">No.${l.vehicle}</span></span>
-                                </div>`;
-                            });
-                            html += `</div>`;
-                        });
-                        html += '</div>';
-                        container.innerHTML = html;
+                    });
+                    html += `</div>`;
+                    content.innerHTML = html;
+                }
+            },
+            
+            showToast(msg) {
+                const t = document.createElement('div'); t.className = 'toast'; t.innerText = msg;
+                document.body.appendChild(t); setTimeout(()=>t.classList.add('show'),10);
+                setTimeout(()=>{ t.classList.remove('show'); setTimeout(()=>t.remove(),400); },3000);
+            },
+            async showConfirmModal(msg) {
+                return new Promise(res => {
+                    const m = document.getElementById('custom-confirm-modal');
+                    document.getElementById('confirm-message').innerText = msg;
+                    m.classList.add('active');
+                    document.getElementById('confirm-ok-btn').onclick = () => { m.classList.remove('active'); res(true); };
+                    document.getElementById('confirm-cancel-btn').onclick = () => { m.classList.remove('active'); res(false); };
+                });
+            }
+        };
+
+        // DB Operations
+        const getPaths = (userId) => {
+            if (!userId) return null;
+            return { logs: collection(db, 'users', userId, 'logs'), shared: collection(db, 'shared_reports') };
+        };
+
+        async function saveLog() {
+            if (!State.user) return UIManager.showToast("サインインが必要です");
+            const s = State.input;
+            const missing = [];
+            if (!s.floor) missing.push('block-floor');
+            if (!s.tour) missing.push('block-tour');
+            if (!s.vehicle) missing.push('block-vehicle');
+            if (!s.profile) missing.push('block-profile');
+            if (missing.length > 0) {
+                missing.forEach(id => document.getElementById(id).classList.add('input-missing'));
+                UIManager.showToast("入力が不足しています"); return;
+            }
+            
+            // 公開中データの追記確認
+            const dateVal = UIManager.els.date.value;
+            if (!State.editingId && State.publishedDates.has(dateVal)) {
+                if (!await UIManager.showConfirmModal("この日付は公開中です。\n記録を追加して公開データを更新しますか？")) return;
+            }
+
+            UIManager.setLoading(true);
+            const data = {
+                date: dateVal, time: State.isTimeInputVisible ? UIManager.els.time.value : '',
+                count: s.count, floor: s.floor, tour: s.tour, vehicle: s.vehicle, profile: s.profile,
+                suspended: s.suspendedTours, memo: UIManager.els.memo.value, author: { uid: State.user.uid, name: State.user.displayName, photoURL: State.user.photoURL }
+            };
+            try {
+                if (State.editingId) await updateDoc(doc(db, 'users', State.user.uid, 'logs', State.editingId), data);
+                else await addDoc(collection(db, 'users', State.user.uid, 'logs'), { ...data, createdAt: serverTimestamp() });
+                if (State.publishedDates.has(data.date)) await window.syncSharedReport(data.date);
+                UIManager.showToast(State.editingId ? "修正しました" : "保存完了"); UIManager.resetInput();
+            } catch (e) { console.error(e); UIManager.showToast("保存失敗: " + e.code); } 
+            finally { UIManager.setLoading(false); }
+        }
+
+        // Global Event Handlers
+        window.handleVehicleClick = async (num, confirmMsg) => {
+            if (State.input.vehicle == num) { State.input.vehicle = null; UIManager.updateAll(); return; }
+            if (confirmMsg && !await UIManager.showConfirmModal(confirmMsg)) return;
+            State.input.vehicle = num;
+            UIManager.updateAll();
+        };
+
+        window.handleEditLog = async (id) => {
+            const log = State.logs.find(l => l.id === id);
+            // 共有ログ画面が開いているかどうかをチェック
+            const sharedModal = document.getElementById('shared-db-modal');
+            const isSharedOpen = sharedModal.classList.contains('active');
+
+            if (log && await UIManager.showConfirmModal("修正モードを開きますか？")) {
+                State.lastScrollPos = window.scrollY; // 本体のスクロール位置を保存
+
+                if (isSharedOpen) {
+                    // 共有ログから編集する場合
+                    const sharedList = document.getElementById('shared-content-area');
+                    State.lastSharedScrollPos = sharedList.scrollTop; // モーダルのスクロール位置を保存
+                    State.isEditingFromShared = true;
+                    UIManager.closeSharedModal(); // モーダルを閉じる
+                } else {
+                    State.isEditingFromShared = false;
+                    State.lastSharedScrollPos = null;
+                }
+
+                State.editingId = id; State.input = { ...log, suspendedTours: log.suspended || [] };
+                UIManager.els.date.value = log.date;
+                if (log.time) { UIManager.els.time.value = log.time; UIManager.activateTimeInput(); }
+                UIManager.updateAll(); 
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        };
+
+        window.handleDeleteLog = async (id) => {
+            if (await UIManager.showConfirmModal("削除しますか？")) {
+                const logToDelete = State.logs.find(l => l.id === id);
+                if (!logToDelete) return;
+                const dateToDelete = logToDelete.date;
+                await deleteDoc(doc(db, 'users', State.user.uid, 'logs', id));
+                
+                // 公開中の日であれば同期
+                if (State.publishedDates.has(dateToDelete)) {
+                    await window.syncSharedReport(dateToDelete);
+                }
+                
+                // 共有DBのローカルデータを更新して即時反映
+                State.sharedReports = State.sharedReports.map(report => {
+                    if (report.date === dateToDelete && report.author.uid === State.user.uid) {
+                        const newLogs = report.logs.filter(l => l.id !== id);
+                        if (newLogs.length === 0) return null;
+                        const newSummary = { A: {}, B: {}, C: {} };
+                        newLogs.forEach(l => { if(l.tour && l.floor && l.vehicle) newSummary[l.tour][l.floor] = l.vehicle; });
+                        return { ...report, logs: newLogs, summary: newSummary };
                     }
+                    return report;
+                }).filter(Boolean);
 
-                } catch(e) {
-                    console.error(e);
-                    container.innerHTML = '<p style="color:#f55; text-align:center;">エラー</p>';
+                UIManager.showToast("削除しました");
+                if (document.getElementById('shared-db-modal').classList.contains('active')) {
+                    UIManager.renderSharedContent();
                 }
             }
         };
 
-        // --- AUTH LISTENER ---
-        onAuthStateChanged(auth, (user) => {
-            if(user) {
-                State.user = user;
-                document.getElementById('header-login-btn').style.display = 'none';
-                document.getElementById('user-display').style.display = 'block';
-                document.getElementById('header-user-icon').src = user.photoURL;
-                
-                // Load Logs
-                onSnapshot(query(collection(db, "logs"), where("author.uid", "==", user.uid), orderBy("date", "desc"), orderBy("createdAt", "desc")), (snap) => {
-                    State.logs = snap.docs.map(d => d.data());
-                    UI.renderHistory();
-                });
-            } else {
-                State.user = null;
-                document.getElementById('header-login-btn').style.display = 'block';
-                document.getElementById('user-display').style.display = 'none';
-                document.getElementById('history-list').innerHTML = '';
-                document.getElementById('history-empty').style.display = 'block';
-                document.getElementById('history-loading').style.display = 'none';
-            }
-        });
-
-        // --- INIT ---
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Config load
-            try {
-                const docRef = doc(db, "config", "schedules");
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) State.specialSchedules = docSnap.data().special_programs;
-            } catch(e) {}
+        window.handleTogglePublish = async (dateStr, checkbox) => {
+            const isChecked = checkbox.checked;
+            // UIを一時的に切り替える（成功を前提）
+            // checkbox.checked = !isChecked; // 元のコードの挙動（一旦戻す）はコメントアウト
             
-            UI.init();
-        });
+            // チェックONにしようとした時
+            if (isChecked) {
+                // 確認モーダルでキャンセルされた場合
+                if (!await UIManager.showConfirmModal(CONSTANTS.MESSAGES.confirmPublish)) {
+                    checkbox.checked = false; // OFFに戻す
+                    return;
+                }
+                
+                try {
+                    await window.syncSharedReport(dateStr);
+                    State.publishedDates.add(dateStr);
+                    UIManager.showToast("公開しました");
+                } catch (error) {
+                    console.error("Publish Error:", error);
+                    checkbox.checked = false; // エラーなのでOFFに戻す
+                    State.publishedDates.delete(dateStr);
+                    UIManager.showToast("公開失敗: " + (error.code || error.message));
+                }
+            } 
+            // チェックOFFにしようとした時
+            else {
+                if (!await UIManager.showConfirmModal(CONSTANTS.MESSAGES.confirmUnpublish)) {
+                     checkbox.checked = true; // ONに戻す
+                     return;
+                }
 
+                try {
+                    await deleteDoc(doc(db, 'shared_reports', dateStr + "_" + State.user.uid));
+                    State.publishedDates.delete(dateStr);
+                    UIManager.showToast("非公開にしました");
+                } catch(e) { 
+                    console.error("Unpublish Error:", e);
+                    checkbox.checked = true; // エラーなのでONに戻す
+                    UIManager.showToast("エラー: " + (e.code || e.message)); 
+                }
+            }
+            UIManager.renderHistory();
+        };
+
+        window.syncSharedReport = async (dateStr) => {
+            const dailyData = Logic.calculateDailyState(dateStr);
+            const logs = State.logs.filter(l => l.date === dateStr);
+            
+            // ログが0件になった場合は共有レポートも削除する
+            if (logs.length === 0) {
+                try {
+                    await deleteDoc(doc(db, 'shared_reports', dateStr + "_" + State.user.uid));
+                    State.publishedDates.delete(dateStr);
+                } catch(e) {
+                    // 削除対象が存在しない場合のエラーなどは無視してOKだが、権限エラーは通知すべきかも
+                    console.log("Delete skipped or failed", e);
+                }
+                return;
+            }
+
+            const summary = { A: {}, B: {}, C: {} };
+            logs.forEach(l => { if(l.tour && l.floor && l.vehicle) summary[l.tour][l.floor] = l.vehicle; });
+            
+            const reportData = {
+                date: dateStr, summary: summary,
+                author: { uid: State.user.uid, name: State.user.displayName || "NoName", photoURL: State.user.photoURL },
+                updatedAt: serverTimestamp(),
+                suspended: Array.from(Object.keys(dailyData.suspended).filter(k=>dailyData.suspended[k])),
+                logs: logs.map(l => ({ id: l.id, time: l.time, count: l.count, tour: l.tour, floor: l.floor, vehicle: l.vehicle, profile: l.profile }))
+            };
+            
+            // エラーを握りつぶさず、呼び出し元でcatchさせるため try-catch を削除
+            await setDoc(doc(db, 'shared_reports', dateStr + "_" + State.user.uid), reportData); 
+        };
+
+        window.loadSharedReports = async () => {
+             UIManager.els.sharedContent.innerHTML = '<div style="padding:20px;text-align:center;">読み込み中...</div>';
+             try {
+                 const q = query(collection(db, 'shared_reports'), orderBy('date', 'desc'), limit(50));
+                 const snapshot = await getDocs(q);
+                 State.sharedReports = snapshot.docs.map(d => d.data());
+                 UIManager.renderSharedContent();
+             } catch(e) {
+                 console.error(e);
+                 UIManager.els.sharedContent.innerHTML = '<div style="padding:20px;text-align:center;">読み込みエラー<br><small>' + e.message + '</small></div>';
+             }
+        };
+
+        const handleTourSelect = (t) => {
+            State.input.tour = State.input.tour === t ? null : t;
+            if (State.input.tour) {
+                const analysis = Logic.analyzeProfileStatus(UIManager.els.date.value, State.input.tour);
+                if (!State.input.profile || State.input.profile === 'UNKNOWN') State.input.profile = analysis.defaultProfile;
+            }
+            UIManager.updateAll();
+        };
+
+        const handleProfileSelect = async (p) => {
+            if (State.input.tour) {
+                const analysis = Logic.analyzeProfileStatus(UIManager.els.date.value, State.input.tour);
+                if (analysis.cautionProfiles.includes(p)) {
+                    if (!await UIManager.showConfirmModal(`推奨設定とは異なります。\n「${CONSTANTS.PROFILES[p]}」を選択しますか？`)) return;
+                }
+            }
+            State.input.profile = p;
+            UIManager.updateAll();
+        };
+
+        window.login = async () => {
+            try { await signInWithPopup(auth, new TwitterAuthProvider()); }
+            catch (error) { console.error("Login failed", error); UIManager.showToast("ログインに失敗しました"); }
+        };
+
+        window.logout = async () => {
+            if (await UIManager.showConfirmModal(CONSTANTS.MESSAGES.confirmLogout)) {
+                try { await signOut(auth); } catch (error) { console.error("Logout failed", error); }
+            }
+        };
+
+        window.onload = async () => {
+            UIManager.init();
+            let unsubscribeLogs = null;
+            let unsubscribeShared = null;
+            
+            // スケジュール設定の監視を開始
+            const configRef = doc(db, 'config', 'schedules');
+            onSnapshot(configRef, (doc) => {
+                if (doc.exists()) {
+                    State.specialSchedules = doc.data().special_programs || [];
+                    // スケジュール更新後に現在のUIも再評価
+                    if (State.input.tour) handleTourSelect(State.input.tour);
+                }
+            }, (error) => console.log("Config fetch error (ignored):", error));
+
+            onAuthStateChanged(auth, user => {
+                if (unsubscribeLogs) { unsubscribeLogs(); unsubscribeLogs = null; }
+                if (unsubscribeShared) { unsubscribeShared(); unsubscribeShared = null; }
+                State.user = user;
+                if (user) {
+                    document.getElementById('user-info').style.display = 'flex';
+                    document.getElementById('login-container').style.display = 'none';
+                    document.getElementById('user-name').innerText = user.displayName || 'Guest';
+                    document.getElementById('user-icon').src = user.photoURL || '';
+                    const paths = getPaths(user.uid);
+                    if (paths) {
+                        unsubscribeLogs = onSnapshot(paths.logs, (snap) => {
+                            State.logs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                            if (!State.editingId) {
+                                const nextState = Logic.calculateNextState(UIManager.els.date.value);
+                                State.input.count = nextState.count;
+                                State.input.suspendedTours = nextState.suspendedTours;
+                            }
+                            UIManager.updateAll();
+                        }, (error) => console.error(error));
+                        const q = query(paths.shared, where("author.uid", "==", user.uid));
+                        unsubscribeShared = onSnapshot(q, (snap) => {
+                            State.publishedDates = new Set(snap.docs.map(d => d.data().date));
+                            UIManager.renderHistory();
+                        }, (error) => console.error(error));
+                    }
+                } else {
+                    document.getElementById('user-info').style.display = 'none';
+                    document.getElementById('login-container').style.display = 'block';
+                    State.logs = []; State.publishedDates = new Set();
+                    UIManager.updateAll();
+                }
+            });
+            document.getElementById('login-btn').addEventListener('click', window.login);
+            document.getElementById('logout-btn').addEventListener('click', window.logout);
+            document.getElementById('visit-date').onchange = () => UIManager.handleDateChange(true);
+            document.getElementById('btn-count-plus').onclick = () => { State.input.count++; UIManager.updateAll(); };
+            document.getElementById('btn-count-minus').onclick = () => { State.input.count = Math.max(1, State.input.count-1); UIManager.updateAll(); };
+            document.getElementById('time-widget').onclick = () => UIManager.activateTimeInput();
+            
+            // 時刻入力の修正：イベント伝播を止める
+            document.getElementById('visit-time').onclick = (e) => {
+                e.stopPropagation();
+                if('showPicker' in HTMLInputElement.prototype) {
+                    e.target.showPicker();
+                }
+            };
+            
+            document.querySelector('.time-clear-btn').onclick = (e) => { e.stopPropagation(); UIManager.deactivateTimeInput(); };
+            document.getElementById('floor-1').onclick = () => { State.input.floor = State.input.floor === 1 ? null : 1; UIManager.updateAll(); };
+            document.getElementById('floor-2').onclick = () => { State.input.floor = State.input.floor === 2 ? null : 2; UIManager.updateAll(); };
+            ['A', 'B', 'C'].forEach(t => {
+                document.getElementById(`tour-btn-${t}`).onclick = () => handleTourSelect(t);
+                document.getElementById(`suspend-btn-${t}`).onclick = async () => {
+                    const idx = State.input.suspendedTours.indexOf(t);
+                    const isSuspended = idx > -1;
+                    const confirmMsg = isSuspended 
+                        ? `TOUR ${t} を「運営中」に変更しますか？` 
+                        : `TOUR ${t} を「運営休止」に設定しますか？`;
+                    
+                    if (await UIManager.showConfirmModal(confirmMsg)) {
+                        if (isSuspended) State.input.suspendedTours.splice(idx, 1); else State.input.suspendedTours.push(t);
+                        UIManager.updateAll();
+                    }
+                };
+            });
+            ['std', 'l13', 'shadow', 'unknown'].forEach((id, idx) => {
+                const pKeys = ['TOWER 1', 'TOWER 2', 'TOWER 3', 'UNKNOWN'];
+                document.getElementById(`prof-${id}`).onclick = () => handleProfileSelect(pKeys[idx]);
+            });
+            document.getElementById('submit-btn').onclick = saveLog;
+            document.getElementById('cancel-btn').onclick = () => UIManager.resetInput();
+            document.querySelector('.shared-trigger').onclick = () => UIManager.openSharedModal();
+            document.querySelector('.modal-close-btn').onclick = () => UIManager.closeSharedModal();
+            document.querySelector('.refresh-btn').onclick = () => window.loadSharedReports();
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active'); State.currentSharedTab = e.target.dataset.tab;
+                    UIManager.renderSharedContent();
+                };
+            });
+            UIManager.updateAll();
+        };
     </script>
 </body>
 </html>
