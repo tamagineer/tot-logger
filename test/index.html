@@ -365,8 +365,8 @@
             background: #222; color: #aaa; font-weight: bold; 
             position: sticky; top: 0; z-index: 10;
         }
-        /* 左上セル（日付見出し）はさらに前面へ */
-        .shared-status-table th:first-child { z-index: 15; left: 0; }
+        /* [修正] 固定列の対象をクラスで厳密に指定 */
+        .shared-status-table th.fixed-col-date { z-index: 15; left: 0; }
         .shared-status-table td.fixed-col-date { position: sticky; left: 0; background: #151515; z-index: 2; font-weight: bold; color: #fff; border-right: 1px solid #444; }
         .shared-status-table td.td-suspended { color: #ff5555; font-weight: bold; }
         
@@ -386,8 +386,6 @@
             background-color: #111; /* Sticky時の背景色（透過防止） */
             position: sticky; top: 0; z-index: 5;
         }
-        /* [修正] マージン0設定を削除（不採用） */
-        /* .shared-content-inner > .shared-date-header:first-child { margin-top: 0; } */
 
         /* =========================================
            6. 確認モーダル & 入力モーダル
@@ -440,10 +438,6 @@
             width: 100%;
             padding: 4px 0; /* 上下の余白 */
         }
-        /* メモがある場合のみ上揃えにするクラス - 削除 */
-        /* .log-grid.has-memo {
-            align-items: start;
-        } */
         
         .log-grid-my {
             grid-template-columns: 32px 60px 1fr auto; /* 回数, 時刻, 内容, アクション */
@@ -488,7 +482,10 @@
         .log-separator, .log-label-no { color: #666; font-size: 0.85rem; font-weight: bold; }
         .text-profile { font-size: 0.75rem; color: #666; margin-left: 4px; } /* #666に変更 */
 
-        .log-actions { display: flex; gap: 4px; justify-content: flex-end; /* align-self: flex-start; 削除 */ margin-top: 0; }
+        .log-actions { 
+            display: flex; gap: 4px; justify-content: flex-end; align-self: center; margin-top: 0; 
+            position: relative; /* メニュー用 */
+        }
         
         .author-icon-list {
             width: 28px; height: 28px; border-radius: 50%; 
@@ -523,6 +520,52 @@
         .disclaimer { font-size: 0.7rem; color: #444; margin-top: 5px; }
         .app-footer a { color: #888; text-decoration: none; border-bottom: 1px dotted #666; transition: 0.2s; }
         .app-footer a:hover { color: #fff; border-bottom-style: solid; }
+
+        /* --- レスポンシブ対応 --- */
+        @media (max-width: 600px) {
+            /* 運営状況：日付短縮、名前非表示 */
+            .date-full { display: none; }
+            .date-short { display: inline; }
+            .author-name-mini { display: none; }
+            
+            /* ログリスト：アクションボタン切り替え */
+            .log-actions.desktop-only { display: none !important; }
+            .log-actions.mobile-only { display: flex !important; }
+        }
+        @media (min-width: 601px) {
+            .date-full { display: inline; }
+            .date-short { display: none; }
+            .log-actions.desktop-only { display: flex !important; }
+            .log-actions.mobile-only { display: none !important; }
+        }
+
+        /* モバイルアクションメニュー */
+        .action-menu-container { position: relative; }
+        .action-menu { 
+            position: absolute; right: 0; top: 100%; 
+            background: #222; border: 1px solid #444; 
+            border-radius: 4px; z-index: 100; 
+            display: none; flex-direction: column; min-width: 100px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+        .action-menu.show { display: flex; }
+        .action-menu-item {
+            background: transparent; border: none; color: #eee;
+            padding: 12px 15px; text-align: left; cursor: pointer;
+            font-size: 0.9rem; width: 100%;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .action-menu-item:hover { background: #333; }
+        .action-menu-item .material-symbols-outlined { font-size: 1.1rem; }
+        .action-menu-item.delete-item { color: #ff5555; }
+        
+        /* オーバーレイ（メニュー背景クリックで閉じる用） */
+        .menu-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 99; display: none;
+        }
+        .menu-overlay.active { display: block; }
+
     </style>
 </head>
 <body>
@@ -672,6 +715,9 @@
             </section>
         </main>
 
+        <!-- メニュー閉じる用オーバーレイ -->
+        <div id="menu-overlay" class="menu-overlay" onclick="window.closeAllMenus()"></div>
+
         <!-- モーダル群 -->
         <div id="shared-db-modal" class="modal-overlay">
             <div class="modal-content">
@@ -760,8 +806,8 @@
             input: { count: 1, floor: null, tour: null, vehicle: null, profile: null, suspendedTours: [], memo: '' },
             editingId: null, lastScrollPos: 0, isTimeInputVisible: false, scrollToId: null, sharedReports: [], 
             currentSharedTab: 'logs',
-            lastSharedScrollPos: null, // 追加
-            isEditingFromShared: false // 追加
+            lastSharedScrollPos: null,
+            isEditingFromShared: false
         };
 
         // Logic
@@ -776,8 +822,6 @@
             },
             getCurrentTimeStr: () => new Date().toTimeString().slice(0, 5),
             getProgramType(dateStr) {
-                // configから読み込んだスケジュールに基づいて判定
-                // specialSchedules形式: [{start: "YYYY-MM-DD", end: "YYYY-MM-DD", type: "L13"|"SHADOW"|"UNLIMITED"|"NORMAL"}, ...]
                 if (!State.specialSchedules || State.specialSchedules.length === 0) return null;
                 const target = State.specialSchedules.find(s => dateStr >= s.start && dateStr <= s.end);
                 return target ? target.type : null;
@@ -793,12 +837,11 @@
                 const assignments = {};
                 const suspendedSet = new Set();
                 const shaftHistory = { A: null, B: null, C: null };
-                const usedVehiclesInOtherPlaces = new Set(); // 他の場所で使われている機体番号
+                const usedVehiclesInOtherPlaces = new Set(); 
 
                 dayLogs.forEach(log => {
                     if (log.tour && log.floor && log.vehicle) {
                         assignments[`${log.tour}-${log.floor}`] = log.vehicle;
-                        // 機体番号の使用状況を収集（場所ごとのマッピング用）
                     }
                     if (log.suspended) log.suspended.forEach(t => suspendedSet.add(t));
                     if (log.tour) suspendedSet.delete(log.tour);
@@ -810,7 +853,6 @@
             analyzeProfileStatus(dateStr, tour) {
                 const daily = this.calculateDailyState(dateStr, State.editingId);
                 
-                // 1. 既存ログによる優先判定（同じツアーで確定済みのプロファイルがあればそれを優先）
                 if (daily.shaftHistory[tour]) {
                     const established = daily.shaftHistory[tour];
                     const allProfiles = Object.keys(CONSTANTS.PROFILES);
@@ -820,34 +862,34 @@
                     };
                 }
 
-                // 2. スペシャルプログラム判定
                 const program = this.getProgramType(dateStr);
                 
-                // ルールA: L13期間
                 if (program === 'L13') {
                     return { defaultProfile: 'TOWER 2', cautionProfiles: ['TOWER 1', 'TOWER 3', 'UNKNOWN'] };
                 }
                 
-                // ルールB: SHADOW期間
                 if (program === 'SHADOW') {
                     return { defaultProfile: 'TOWER 3', cautionProfiles: ['TOWER 1', 'TOWER 2', 'UNKNOWN'] };
                 }
                 
-                // ルールC: UNLIMITED期間 または (未登録 && 1-4月)
                 const month = parseInt(dateStr.split('-')[1], 10);
                 const isSpring = (month >= 1 && month <= 4);
                 
                 if (program === 'UNLIMITED' || (!program && isSpring)) {
-                    // デフォルトは不明。すべて警告なしで選択可能とする
                     return { defaultProfile: 'UNKNOWN', cautionProfiles: [] };
                 }
                 
-                // ルールD: NORMAL または その他（通常営業）
                 return { defaultProfile: 'TOWER 1', cautionProfiles: ['TOWER 2', 'TOWER 3', 'UNKNOWN'] };
             }
         };
 
-        // Helper Function: 日ごとのサマリーテーブルHTML生成
+        // Helper Functions
+        function formatDate(dateStr) {
+            // YYYY-MM-DD -> MM/DD
+            const parts = dateStr.split('-');
+            return `<span class="date-full">${dateStr}</span><span class="date-short">${parts[1]}/${parts[2]}</span>`;
+        }
+
         function generateDailySummaryHTML(logs, dateStr, externalSuspended = null) {
             const tourData = { A: {floors:{}, profiles:new Set()}, B: {floors:{}, profiles:new Set()}, C: {floors:{}, profiles:new Set()} };
             const suspended = { A: false, B: false, C: false };
@@ -857,7 +899,7 @@
                 if(!tourData[log.tour]) return;
                 if (log.floor && log.vehicle) tourData[log.tour].floors[log.floor] = log.vehicle;
                 if (log.suspended) log.suspended.forEach(t => suspended[t] = true);
-                if (log.profile) tourData[log.tour].profiles.add(log.profile); // UNKNOWNも一旦入れる
+                if (log.profile) tourData[log.tour].profiles.add(log.profile); 
             });
 
             const getCell = (tour, floor) => {
@@ -866,7 +908,6 @@
                 return v ? `<span style="font-weight:bold;">${v}</span>` : '-';
             };
 
-            // プロファイル混在期間判定 (Rule Cに準拠)
             const program = Logic.getProgramType(dateStr);
             const month = parseInt(dateStr.split('-')[1], 10);
             const isSpring = (month >= 1 && month <= 4);
@@ -876,18 +917,15 @@
                 if (!showProfiles) return '';
                 if (suspended[tour]) return '<br><span class="th-profile-sub">-</span>';
                 
-                // UNKNOWNを除外したリストを作成
                 const profiles = Array.from(tourData[tour].profiles);
                 const visibleProfiles = profiles.filter(p => p !== 'UNKNOWN');
                 
-                // UNKNOWNしか無い場合はUNKNOWNを表示対象にする
                 if (visibleProfiles.length === 0 && profiles.includes('UNKNOWN')) {
                     visibleProfiles.push('UNKNOWN');
                 }
                 
                 if (visibleProfiles.length === 0) return '<br><span class="th-profile-sub">-</span>';
                 
-                // 表示名に変換して結合
                 const displayNames = visibleProfiles.map(p => CONSTANTS.PROFILES[p] || p);
                 return `<br><span class="th-profile-sub">${displayNames.join('・')}</span>`;
             };
@@ -910,6 +948,32 @@
                 </table>
             </div>`;
         }
+
+        // Global functions for menu
+        window.toggleMenu = (logId, event) => {
+            event.stopPropagation();
+            const menu = document.getElementById(`menu-${logId}`);
+            const overlay = document.getElementById('menu-overlay');
+            if (menu) {
+                // 他のメニューを閉じる
+                document.querySelectorAll('.action-menu.show').forEach(m => {
+                    if (m.id !== `menu-${logId}`) m.classList.remove('show');
+                });
+                
+                if (menu.classList.contains('show')) {
+                    menu.classList.remove('show');
+                    overlay.classList.remove('active');
+                } else {
+                    menu.classList.add('show');
+                    overlay.classList.add('active');
+                }
+            }
+        };
+
+        window.closeAllMenus = () => {
+            document.querySelectorAll('.action-menu.show').forEach(m => m.classList.remove('show'));
+            document.getElementById('menu-overlay').classList.remove('active');
+        };
 
         // UI Manager
         const UIManager = {
@@ -968,22 +1032,16 @@
 
                 // 修正モードを抜けたら元の位置へ戻る
                 if (wasEditing) {
-                    // 本体のスクロール位置復帰
                     setTimeout(() => window.scrollTo({ top: State.lastScrollPos, behavior: 'smooth' }), 100);
-
-                    // 共有ログから来ていた場合の復帰処理
                     if (returnToShared) {
-                         // 少し待ってからモーダルを開く（本体スクロールとの干渉を防ぐため微調整が必要かも）
                          setTimeout(async () => {
-                             await UIManager.openSharedModal(); // 再読み込み＆オープン
-                             // スクロール位置復元
+                             await UIManager.openSharedModal();
                              const sharedList = document.getElementById('shared-content-area');
                              if(sharedList) sharedList.scrollTop = scrollPos;
-                         }, 300); // タイミング調整
+                         }, 300);
                     }
                 }
                 
-                // フラグ初期化
                 State.isEditingFromShared = false;
                 State.lastSharedScrollPos = null;
             },
@@ -993,7 +1051,7 @@
                 document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === 'logs'));
                 this.els.sharedModal.classList.add('active'); 
                 document.body.classList.add('modal-open'); 
-                await window.loadSharedReports(); // awaitを追加
+                await window.loadSharedReports(); 
             },
             closeSharedModal() { this.els.sharedModal.classList.remove('active'); document.body.classList.remove('modal-open'); },
             setLoading(loading) { this.els.submitBtn.classList.toggle('loading', loading); this.els.submitBtn.innerText = loading ? "送信中..." : (State.editingId ? "修正を保存" : "記録する"); },
@@ -1031,7 +1089,6 @@
                 const currentKey = (tour && floor) ? `${tour}-${floor}` : null;
                 const daily = Logic.calculateDailyState(this.els.date.value, State.editingId);
                 
-                // 他の乗り場で使用されている機体番号のセットを作成
                 const usedInOtherPlaces = new Set();
                 if (currentKey) {
                     Object.entries(daily.assignments).forEach(([key, val]) => {
@@ -1060,17 +1117,14 @@
                         
                         if (State.input.vehicle == i) btn.classList.add('selected');
                         
-                        // クリック時の挙動
                         btn.addEventListener('click', () => {
                             let msg = null;
                             if (i === 7) msg = CONSTANTS.MESSAGES.vehicle7Caution;
                             if (isUsedElsewhere) msg = CONSTANTS.MESSAGES.usedVehicleCaution;
-                            // 上書き警告より使用済み警告を優先
                             if (!msg && caution && daily.assignments[currentKey]) {
                                 const oldVal = daily.assignments[currentKey];
                                 msg = `この乗り場には既に No.${oldVal} が登録されています。No.${i} に変更しますか？`;
                             }
-                            
                             window.handleVehicleClick(i, msg);
                         });
                     }
@@ -1110,18 +1164,14 @@
                         <div class="history-content">
                             ${summaryHTML}
                             <div class="log-list">`;
-                    // 修正: 昇順にソート
                     groups[date].sort((a,b)=>a.count-b.count).forEach(l => {
                         const vehicleStr = l.vehicle ? l.vehicle : '--';
                         const profileName = (l.profile && l.profile !== 'UNKNOWN' && l.profile !== 'TOWER 1') ? CONSTANTS.PROFILES[l.profile] : '';
                         const memoHtml = l.memo ? `<div class="log-memo-line">${l.memo}</div>` : '';
                         
-                        // hasMemoフラグに関わらずデフォルトのCSSクラスを適用（常に中央揃え）
-                        const gridClass = "log-grid log-grid-my";
-
                         html += `
                         <div class="log-entry" id="log-${l.id}">
-                            <div class="${gridClass}">
+                            <div class="log-grid log-grid-my">
                                 <div class="log-count">#${l.count}</div>
                                 <div class="log-time">${l.time||'--:--'}</div>
                                 <div class="log-content-wrapper">
@@ -1133,9 +1183,20 @@
                                     </div>
                                     ${memoHtml}
                                 </div>
-                                <div class="log-actions">
+                                <div class="log-actions desktop-only">
                                     <button class="icon-btn" onclick="window.handleEditLog('${l.id}')"><span class="material-symbols-outlined">edit</span></button>
                                     <button class="icon-btn" onclick="window.handleDeleteLog('${l.id}')"><span class="material-symbols-outlined">delete</span></button>
+                                </div>
+                                <div class="log-actions mobile-only">
+                                    <button class="icon-btn" onclick="window.toggleMenu('${l.id}', event)"><span class="material-symbols-outlined">more_vert</span></button>
+                                    <div class="action-menu" id="menu-${l.id}">
+                                        <button class="action-menu-item" onclick="window.handleEditLog('${l.id}')">
+                                            <span class="material-symbols-outlined">edit</span> 修正
+                                        </button>
+                                        <button class="action-menu-item delete-item" onclick="window.handleDeleteLog('${l.id}')">
+                                            <span class="material-symbols-outlined">delete</span> 削除
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>`;
@@ -1179,7 +1240,7 @@
                         };
                         html += `
                         <tr>
-                            <td class="fixed-col-date">${r.date.replace(/-/g, '/')}</td>
+                            <td class="fixed-col-date">${formatDate(r.date)}</td>
                             <td>${getVal('A', 1)}</td><td>${getVal('A', 2)}</td>
                             <td>${getVal('B', 1)}</td><td>${getVal('B', 2)}</td>
                             <td>${getVal('C', 1)}</td><td>${getVal('C', 2)}</td>
@@ -1203,7 +1264,6 @@
                         }
                     });
                     
-                    // 日付(降順) > 時刻(降順) でソート
                     allLogs.sort((a, b) => b.date.localeCompare(a.date) || (b.time || "").localeCompare(a.time || ""));
                     
                     const groupedLogs = {};
@@ -1216,7 +1276,6 @@
                     Object.keys(groupedLogs).sort((a,b)=>b.localeCompare(a)).forEach(date => {
                         html += `<div class="shared-date-header">${date.replace(/-/g, '/')}</div>`;
                         
-                        // 修正: 昇順にソート ( (a.count || 0) - (b.count || 0) )
                         const dailyLogs = groupedLogs[date].sort((a, b) => (a.count || 0) - (b.count || 0));
                         
                         dailyLogs.forEach(l => {
@@ -1225,8 +1284,27 @@
                              const isMyLog = l.author?.uid === State.user?.uid;
                              const memoHtml = l.memo ? `<div class="log-memo-line">${l.memo}</div>` : '';
                              
-                             // hasMemoフラグに関わらずデフォルトのCSSクラスを適用（常に中央揃え）
                              const gridClass = "log-grid log-grid-shared";
+
+                             let actionHtml = '';
+                             if (isMyLog) {
+                                 actionHtml = `
+                                 <div class="log-actions desktop-only">
+                                     <button class="icon-btn" onclick="window.handleEditLog('${l.id}')"><span class="material-symbols-outlined">edit</span></button>
+                                     <button class="icon-btn" onclick="window.handleDeleteLog('${l.id}')"><span class="material-symbols-outlined">delete</span></button>
+                                 </div>
+                                 <div class="log-actions mobile-only">
+                                     <button class="icon-btn" onclick="window.toggleMenu('${l.id}', event)"><span class="material-symbols-outlined">more_vert</span></button>
+                                     <div class="action-menu" id="menu-${l.id}">
+                                         <button class="action-menu-item" onclick="window.handleEditLog('${l.id}')">
+                                             <span class="material-symbols-outlined">edit</span> 修正
+                                         </button>
+                                         <button class="action-menu-item delete-item" onclick="window.handleDeleteLog('${l.id}')">
+                                             <span class="material-symbols-outlined">delete</span> 削除
+                                         </button>
+                                     </div>
+                                 </div>`;
+                             }
 
                              html += `
                             <div class="log-entry shared-log-entry">
@@ -1243,12 +1321,7 @@
                                         </div>
                                         ${memoHtml}
                                     </div>
-                                    <div class="log-actions">
-                                        ${isMyLog ? `
-                                            <button class="icon-btn" onclick="window.handleEditLog('${l.id}')"><span class="material-symbols-outlined">edit</span></button>
-                                            <button class="icon-btn" onclick="window.handleDeleteLog('${l.id}')"><span class="material-symbols-outlined">delete</span></button>
-                                        ` : ''}
-                                    </div>
+                                    ${actionHtml}
                                 </div>
                             </div>`;
                         });
@@ -1274,7 +1347,6 @@
             }
         };
 
-        // DB Operations
         const getPaths = (userId) => {
             if (!userId) return null;
             return { logs: collection(db, 'users', userId, 'logs'), shared: collection(db, 'shared_reports') };
@@ -1293,7 +1365,6 @@
                 UIManager.showToast("入力が不足しています"); return;
             }
             
-            // 公開中データの追記確認
             const dateVal = UIManager.els.date.value;
             if (!State.editingId && State.publishedDates.has(dateVal)) {
                 if (!await UIManager.showConfirmModal("この日付は公開中です。\n記録を追加して公開データを更新しますか？")) return;
@@ -1314,7 +1385,6 @@
             finally { UIManager.setLoading(false); }
         }
 
-        // Global Event Handlers
         window.handleVehicleClick = async (num, confirmMsg) => {
             if (State.input.vehicle == num) { State.input.vehicle = null; UIManager.updateAll(); return; }
             if (confirmMsg && !await UIManager.showConfirmModal(confirmMsg)) return;
@@ -1324,19 +1394,17 @@
 
         window.handleEditLog = async (id) => {
             const log = State.logs.find(l => l.id === id);
-            // 共有ログ画面が開いているかどうかをチェック
             const sharedModal = document.getElementById('shared-db-modal');
             const isSharedOpen = sharedModal.classList.contains('active');
 
             if (log && await UIManager.showConfirmModal("修正モードを開きますか？")) {
-                State.lastScrollPos = window.scrollY; // 本体のスクロール位置を保存
+                State.lastScrollPos = window.scrollY; 
 
                 if (isSharedOpen) {
-                    // 共有ログから編集する場合
                     const sharedList = document.getElementById('shared-content-area');
-                    State.lastSharedScrollPos = sharedList.scrollTop; // モーダルのスクロール位置を保存
+                    State.lastSharedScrollPos = sharedList.scrollTop;
                     State.isEditingFromShared = true;
-                    UIManager.closeSharedModal(); // モーダルを閉じる
+                    UIManager.closeSharedModal();
                 } else {
                     State.isEditingFromShared = false;
                     State.lastSharedScrollPos = null;
@@ -1357,12 +1425,10 @@
                 const dateToDelete = logToDelete.date;
                 await deleteDoc(doc(db, 'users', State.user.uid, 'logs', id));
                 
-                // 公開中の日であれば同期
                 if (State.publishedDates.has(dateToDelete)) {
                     await window.syncSharedReport(dateToDelete);
                 }
                 
-                // 共有DBのローカルデータを更新して即時反映
                 State.sharedReports = State.sharedReports.map(report => {
                     if (report.date === dateToDelete && report.author.uid === State.user.uid) {
                         const newLogs = report.logs.filter(l => l.id !== id);
@@ -1383,14 +1449,9 @@
 
         window.handleTogglePublish = async (dateStr, checkbox) => {
             const isChecked = checkbox.checked;
-            // UIを一時的に切り替える（成功を前提）
-            // checkbox.checked = !isChecked; // 元のコードの挙動（一旦戻す）はコメントアウト
-            
-            // チェックONにしようとした時
             if (isChecked) {
-                // 確認モーダルでキャンセルされた場合
                 if (!await UIManager.showConfirmModal(CONSTANTS.MESSAGES.confirmPublish)) {
-                    checkbox.checked = false; // OFFに戻す
+                    checkbox.checked = false; 
                     return;
                 }
                 
@@ -1400,15 +1461,13 @@
                     UIManager.showToast("公開しました");
                 } catch (error) {
                     console.error("Publish Error:", error);
-                    checkbox.checked = false; // エラーなのでOFFに戻す
+                    checkbox.checked = false;
                     State.publishedDates.delete(dateStr);
                     UIManager.showToast("公開失敗: " + (error.code || error.message));
                 }
-            } 
-            // チェックOFFにしようとした時
-            else {
+            } else {
                 if (!await UIManager.showConfirmModal(CONSTANTS.MESSAGES.confirmUnpublish)) {
-                     checkbox.checked = true; // ONに戻す
+                     checkbox.checked = true;
                      return;
                 }
 
@@ -1418,7 +1477,7 @@
                     UIManager.showToast("非公開にしました");
                 } catch(e) { 
                     console.error("Unpublish Error:", e);
-                    checkbox.checked = true; // エラーなのでONに戻す
+                    checkbox.checked = true; 
                     UIManager.showToast("エラー: " + (e.code || e.message)); 
                 }
             }
@@ -1429,13 +1488,11 @@
             const dailyData = Logic.calculateDailyState(dateStr);
             const logs = State.logs.filter(l => l.date === dateStr);
             
-            // ログが0件になった場合は共有レポートも削除する
             if (logs.length === 0) {
                 try {
                     await deleteDoc(doc(db, 'shared_reports', dateStr + "_" + State.user.uid));
                     State.publishedDates.delete(dateStr);
                 } catch(e) {
-                    // 削除対象が存在しない場合のエラーなどは無視してOKだが、権限エラーは通知すべきかも
                     console.log("Delete skipped or failed", e);
                 }
                 return;
@@ -1452,7 +1509,6 @@
                 logs: logs.map(l => ({ id: l.id, time: l.time, count: l.count, tour: l.tour, floor: l.floor, vehicle: l.vehicle, profile: l.profile }))
             };
             
-            // エラーを握りつぶさず、呼び出し元でcatchさせるため try-catch を削除
             await setDoc(doc(db, 'shared_reports', dateStr + "_" + State.user.uid), reportData); 
         };
 
@@ -1505,12 +1561,10 @@
             let unsubscribeLogs = null;
             let unsubscribeShared = null;
             
-            // スケジュール設定の監視を開始
             const configRef = doc(db, 'config', 'schedules');
             onSnapshot(configRef, (doc) => {
                 if (doc.exists()) {
                     State.specialSchedules = doc.data().special_programs || [];
-                    // スケジュール更新後に現在のUIも再評価
                     if (State.input.tour) handleTourSelect(State.input.tour);
                 }
             }, (error) => console.log("Config fetch error (ignored):", error));
@@ -1555,7 +1609,6 @@
             document.getElementById('btn-count-minus').onclick = () => { State.input.count = Math.max(1, State.input.count-1); UIManager.updateAll(); };
             document.getElementById('time-widget').onclick = () => UIManager.activateTimeInput();
             
-            // 時刻入力の修正：イベント伝播を止める
             document.getElementById('visit-time').onclick = (e) => {
                 e.stopPropagation();
                 if('showPicker' in HTMLInputElement.prototype) {
