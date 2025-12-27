@@ -186,6 +186,7 @@
             border-bottom: none; 
         }
         
+        /* リスト先頭の過去ログ見出しのマージン削除 */
         .log-list-container > .past-log-label:first-child,
         .shared-content-inner > .past-log-label:first-child {
             margin-top: 0;
@@ -258,7 +259,7 @@
         /* 見出しを暗めに */
         .optional-area .label { color: #777; } 
 
-        /* 任意エリア内のボタン */
+        /* [修正] 任意エリア内のボタン：背景を暗めに統一 */
         .optional-area .btn {
             background-color: #222; 
             border-color: var(--c-border-light);
@@ -284,7 +285,7 @@
         .suspend-btn { 
             flex: 1; 
             padding: 10px 0; 
-            background-color: #222; 
+            background-color: #222; /* 背景色統一 */
             border: 1px solid var(--c-border-light); 
             color: #ccc; 
             border-radius: var(--radius-sm); 
@@ -303,13 +304,14 @@
         }
         
         .memo-area { margin-bottom: 0; }
-        /* 任意エリア内のテキストエリア */
-        /* [修正] フォントサイズ 0.75rem に統一 */
+        /* [修正] 任意エリア内のテキストエリア：背景をボタンと統一、文字サイズ戻し */
         .optional-area textarea { 
             width: 100%; height: 80px; padding: 12px; 
             background: #222; color: #ccc; 
             border: 1px solid #333; border-radius: var(--radius-sm); 
-            resize: none; font-size: 0.75rem; box-sizing: border-box; font-family: var(--font-main); line-height: 1.5; display: block; 
+            resize: none; 
+            font-size: 0.95rem; /* [修正] 0.75rem -> 0.95rem */
+            box-sizing: border-box; font-family: var(--font-main); line-height: 1.5; display: block; 
         }
         .optional-area textarea:focus { border-color: #555; outline: none; }
 
@@ -430,12 +432,12 @@
         .fab:hover { background-color: #ddd; }
         .fab .material-symbols-outlined { font-size: 28px; }
 
-        /* FAB Positioning */
+        /* FAB Positioning: default to right bottom, center on larger screens if desired or keep right */
         @media (min-width: 640px) {
             .fab {
                 left: 50%;
                 right: auto;
-                margin-left: 220px; 
+                margin-left: 220px; /* Center (300px) - margin(20) - size(56) approx */
             }
         }
 
@@ -445,6 +447,7 @@
             background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(5px); 
             z-index: 2000; display: none; 
             opacity: 0; transition: opacity 0.3s;
+            /* Default for bottom sheet */
             align-items: flex-end; 
         }
         .modal-overlay.active { display: flex; opacity: 1; }
@@ -461,6 +464,7 @@
         }
         .modal-overlay.active .modal-content { transform: translateY(0); }
         
+        /* [修正] パディング調整 */
         .modal-header { 
             padding: 15px; 
             border-bottom: 1px solid #333; 
@@ -477,7 +481,14 @@
             cursor: pointer; transition: all 0.2s;
         }
         .header-submit-btn:disabled { opacity: 0.3; cursor: not-allowed; border-color: var(--c-text-muted); color: var(--c-text-muted); }
-        .header-submit-btn:not(:disabled):hover { background: var(--c-text-accent); color: var(--c-text-inverse); }
+        /* [修正] 記録ボタンアクティブ時: 白背景・黒文字 */
+        .header-submit-btn:not(:disabled) { 
+            background: var(--c-text-accent); 
+            color: var(--c-text-inverse); 
+        }
+        .header-submit-btn:not(:disabled):hover { 
+            background: #ddd; /* ホバーで少し暗く */
+        }
         
         .header-icon-btn {
             background: transparent; border: none; color: var(--c-text-sub); width: 36px; height: 36px; border-radius: 50%;
@@ -527,17 +538,16 @@
         .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
         /* Action Sheet Styles */
-        /* [修正] アクションシートのボタンデザイン */
-        .action-sheet-list { list-style: none; padding: 20px; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+        .action-sheet-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; }
         .action-sheet-btn {
-            background: #222; border: 1px solid var(--c-border-light);
-            color: var(--c-text-main); font-size: 1rem; padding: 14px;
-            text-align: center; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
-            border-radius: var(--radius-sm);
+            background: transparent; border: none; border-bottom: 1px solid var(--c-border);
+            color: var(--c-text-main); font-size: 1rem; padding: 16px;
+            text-align: left; cursor: pointer; display: flex; align-items: center; gap: 12px;
             transition: background 0.2s; width: 100%;
         }
-        .action-sheet-btn:active { background: #333; }
-        .action-sheet-btn.delete { color: var(--c-caution); border-color: var(--c-caution); }
+        .action-sheet-btn:last-child { border-bottom: none; }
+        .action-sheet-btn:active { background: var(--c-bg-hover); }
+        .action-sheet-btn.delete { color: var(--c-caution); }
         .action-sheet-btn .material-symbols-outlined { font-size: 1.2rem; }
 
         /* Responsive */
@@ -587,7 +597,7 @@
         </main>
         
         <!-- FAB -->
-        <button id="fab-add" class="fab" onclick="window.openInputModal(true)">
+        <button id="fab-add" class="fab" onclick="window.openInputModal()">
             <span class="material-symbols-outlined">add</span>
         </button>
 
@@ -699,7 +709,7 @@
 
         <!-- Action Sheet Modal -->
         <div id="action-sheet-modal" class="modal-overlay">
-            <div class="modal-content" style="height: auto;">
+            <div class="modal-content">
                 <div class="modal-body" style="padding: 0;">
                     <div class="action-sheet-list">
                         <button class="action-sheet-btn" onclick="window.performAction('edit')">
@@ -1155,34 +1165,14 @@
         };
 
         window.handleEditLog = async (id) => {
-            // マイログ（State.logs）から検索
-            let log = State.logs.find(l => l.id === id);
-            
-            // マイログになければ、共有レポート（State.sharedReports）から自分のログを検索
-            if (!log && State.user) {
-                 for (const report of State.sharedReports) {
-                     if (report.author.uid === State.user.uid && report.logs) {
-                         const found = report.logs.find(l => l.id === id);
-                         if (found) {
-                             log = { ...found, date: report.date }; // 日付情報を補完
-                             break;
-                         }
-                     }
-                 }
-            }
+            const log = State.logs.find(l => l.id === id);
             
             if (log) {
-                State.editingId = id; 
-                State.input = { ...log, suspendedTours: log.suspended || [] };
+                State.editingId = id; State.input = { ...log, suspendedTours: log.suspended || [] };
                 UIManager.els.date.value = log.date;
-                if (log.time) { 
-                    UIManager.els.time.value = log.time; 
-                    State.isTimeInputVisible = true; 
-                } else { 
-                    State.isTimeInputVisible = false; 
-                }
+                if (log.time) { UIManager.els.time.value = log.time; State.isTimeInputVisible = true; } else { State.isTimeInputVisible = false; }
                 
-                window.openInputModal(false); // リセットせずに開く
+                window.openInputModal();
                 UIManager.updateAll(); 
             }
         };
@@ -1265,6 +1255,7 @@
                     this.els.count.innerText = State.input.count; this.els.memo.value = State.input.memo;
                     this.updateEditModeUI(); this.updateTimeUI();
                 }
+                
                 window.renderMainContent();
             },
             updateTimeUI() {
@@ -1414,9 +1405,9 @@
                         <div class="history-content">
                             ${summaryHTML}
                             <div class="log-list">`;
-                     // 降順ソート
+                     // [修正] 降順ソート
                      todayLogs.sort((a,b)=>b.count-a.count).forEach(l => {
-                        html += this.createLogEntryHTML(l, true); // true for mylog
+                        html += this.createLogEntryHTML(l, true); 
                      });
                      html += `</div></div></details>`;
                 }
@@ -1448,7 +1439,7 @@
                             ${summaryHTML}
                             <div class="log-list">`;
                         logs.sort((a,b)=>b.count-a.count).forEach(l => {
-                            html += this.createLogEntryHTML(l, true); // true for mylog
+                            html += this.createLogEntryHTML(l, true); 
                         });
                         html += `</div></div></details>`;
                     });
@@ -1461,22 +1452,10 @@
                 const vehicleStr = l.vehicle ? l.vehicle : '--';
                 const profileName = (l.profile && l.profile !== 'UNKNOWN' && l.profile !== 'TOWER 1') ? CONSTANTS.PROFILES[l.profile] : '';
                 const memoHtml = l.memo ? `<div class="log-memo-line">${l.memo}</div>` : '';
-                // [修正] みんなのログタブでは常にアイコンを表示（共有ログ用レイアウト）
-                const showIcon = !isMyLog; 
-                // ただし、要件では「みんなのログにおいて...表示」なので、現在のタブがlogsなら自分でも表示すべき
-                // 簡易的に「マイログ以外」なら共有用クラスを適用してアイコンを表示する
-                const isSharedView = State.currentSharedTab === 'logs';
-                const gridClass = isSharedView ? "log-grid log-grid-shared" : "log-grid log-grid-my";
-
-                let iconImg = '';
-                if (isSharedView) {
-                    iconImg = `<img src="${l.author.photoURL || ''}" class="author-icon-list" onerror="this.style.display='none'">`;
-                }
-
                 return `
                         <div class="log-entry ${!isMyLog ? 'shared-log-entry' : ''}" id="log-${l.id}">
-                            <div class="${gridClass}">
-                                ${iconImg}
+                            <div class="log-grid ${isMyLog ? 'log-grid-my' : 'log-grid-shared'}">
+                                ${ !isMyLog ? `<img src="${l.author.photoURL || ''}" class="author-icon-list" onerror="this.style.display='none'">` : '' }
                                 <div class="log-count">#${l.count}</div>
                                 <div class="log-time">${l.time||'--:--'}</div>
                                 <div class="log-content-wrapper">
@@ -1549,14 +1528,12 @@
                     html += `</tbody></table></div>`;
                     container.innerHTML = html;
                 } else {
-                    // Shared Logs Logic
                     const allLogs = [];
                     State.sharedReports.forEach(report => {
                         if (report.logs) {
                             report.logs.forEach(log => { allLogs.push({ ...log, date: report.date, author: report.author }); });
                         }
                     });
-                    // ソート: 日付降順 > 搭乗回数降順 (ここでの時間ソートは補助的)
                     allLogs.sort((a, b) => b.date.localeCompare(a.date) || (b.time || "").localeCompare(a.time || ""));
                     const groupedLogs = {};
                     allLogs.forEach(log => { if (!groupedLogs[log.date]) groupedLogs[log.date] = []; groupedLogs[log.date].push(log); });
@@ -1566,7 +1543,6 @@
                     const todayStr = Logic.getTodayStr();
                     
                     if(groupedLogs[todayStr]) {
-                        // [修正] 降順ソート
                         const dailyLogs = groupedLogs[todayStr].sort((a, b) => (b.count || 0) - (a.count || 0));
                         html += this.createSharedDailyLogHTML(todayStr, dailyLogs, true);
                     }
@@ -1575,12 +1551,10 @@
                     if (pastDates.length > 0) {
                         html += `<div class="past-log-label">過去のログ</div>`;
                         pastDates.forEach(date => {
-                            // [修正] 降順ソート
                             const dailyLogs = groupedLogs[date].sort((a, b) => (b.count || 0) - (a.count || 0));
                             html += this.createSharedDailyLogHTML(date, dailyLogs, false);
                         });
                     }
-                    
                     html += `</div>`;
                     container.innerHTML = html;
                 }

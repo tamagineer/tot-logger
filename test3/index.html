@@ -1,0 +1,1964 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- キャッシュ対策 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
+    <title>TOT Logger (Standard)</title>
+    
+    <!-- Fonts & Icons -->
+    <link rel="stylesheet" href="https://use.typekit.net/erb7jzd.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
+    <style>
+        /* =========================================
+           1. VARIABLES & BASE
+           ========================================= */
+        :root {
+            /* Backgrounds */
+            --c-bg-body: #000000;
+            --c-bg-card: #111111;
+            --c-bg-input: #1a1a1a;
+            --c-bg-btn: #000000;
+            --c-bg-btn-active: #ffffff;
+            --c-bg-element: #222222;
+            --c-bg-hover: #333333;
+            
+            /* Text */
+            --c-text-main: #e0e0e0;
+            --c-text-sub: #888888;
+            --c-text-inverse: #000000;
+            --c-text-accent: #ffffff;
+            --c-text-muted: #666666;
+            
+            /* Borders */
+            --c-border: #333333;
+            --c-border-light: #444444;
+            
+            /* Functional */
+            --c-caution: #ff5555;
+            --c-caution-bg: #221111;
+            --c-accent-green: #4caf50; /* シリキカラー */
+            
+            /* Layout & Spacing */
+            --radius-sm: 6px;
+            --radius-md: 12px;
+            --radius-pill: 24px;
+            
+            --font-main: 'Noto Sans JP', sans-serif;
+            --font-display: "stencil-std", sans-serif;
+        }
+
+        body {
+            background-color: var(--c-bg-body); color: var(--c-text-main); font-family: var(--font-main);
+            margin: 0; padding: 0; text-align: center; box-sizing: border-box; width: 100%; font-weight: 400;
+            line-height: 1.5;
+            overscroll-behavior-y: contain; 
+            touch-action: pan-y; 
+            overflow-x: hidden;
+        }
+        .main-wrapper { max-width: 600px; margin: 0 auto; padding: 0; box-sizing: border-box; position: relative; min-height: 100vh; display: flex; flex-direction: column; }
+
+        body.modal-open { overflow: hidden; }
+
+        /* =========================================
+           Header
+           ========================================= */
+        header.app-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px; 
+            background: var(--c-bg-body);
+            position: sticky; top: 0; z-index: 100;
+            border-bottom: 1px solid var(--c-border);
+        }
+        
+        .header-left, .header-right { display: flex; align-items: center; width: 60px; }
+        .header-right { justify-content: flex-end; }
+        
+        h1.app-title {
+            font-family: var(--font-display); font-size: 1.5rem; margin: 0;
+            color: var(--c-text-accent); letter-spacing: 2px;
+            flex: 1; text-align: center; 
+        }
+
+        .auth-btn {
+            background: transparent; border: none; color: var(--c-text-main);
+            width: 36px; height: 36px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; padding: 0;
+        }
+        .auth-user-img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1px solid var(--c-border-light); }
+        .auth-btn .material-symbols-outlined { font-size: 32px; color: var(--c-text-sub); }
+
+        /* =========================================
+           Tab Navigation
+           ========================================= */
+        .tab-group { 
+            display: flex; 
+            border-bottom: 1px solid var(--c-border); 
+            background: var(--c-bg-surface); 
+            position: sticky; 
+            z-index: 90;
+        }
+        .tab-btn { 
+            flex: 1; padding: 12px 8px; 
+            background: transparent; border: none; 
+            color: var(--c-text-sub); font-weight: bold; 
+            cursor: pointer; transition: 0.2s; 
+            border-bottom: 3px solid transparent; font-size: 0.9rem; 
+            white-space: nowrap;
+        }
+        .tab-btn.active { 
+            /* グレースケール指定 */
+            color: #e0e0e0; 
+            border-bottom-color: #e0e0e0; 
+            background: var(--c-bg-element); 
+        }
+
+        /* =========================================
+           Main Content Area (Tab Slider)
+           ========================================= */
+        .app-container { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .content-area { 
+            flex: 1; 
+            min-height: 50vh; 
+            overflow: hidden; 
+            position: relative;
+        }
+        
+        .tab-slider-wrapper {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        .tab-slider {
+            display: flex;
+            width: 300%; /* 3 tabs */
+            height: 100%;
+            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .tab-pane {
+            width: 33.333%; /* 100 / 3 */
+            height: 100%;
+            overflow-y: auto;
+            padding: 15px 15px 100px 15px;
+            box-sizing: border-box;
+        }
+        
+        .empty-state {
+            padding: 40px 20px; text-align: center; color: var(--c-text-muted); font-size: 0.9rem;
+            display: flex; flex-direction: column; align-items: center; gap: 10px;
+        }
+        .empty-state .material-symbols-outlined { font-size: 48px; opacity: 0.3; }
+        
+        .status-message {
+            padding: 40px 20px; text-align: center; color: var(--c-text-muted); font-size: 0.9rem;
+        }
+
+        /* =========================================
+           Common Components
+           ========================================= */
+        .label {
+            font-size: 0.85rem; color: var(--c-text-secondary); 
+            margin-bottom: 10px; 
+            text-align: left; padding: 0; padding-left: 6px; 
+            font-weight: bold;
+            display: flex; justify-content: space-between; align-items: baseline;
+            width: 100%; box-sizing: border-box;
+            transition: color 0.3s;
+        }
+        
+        .modal-body .label { padding-left: 0; }
+
+        .btn {
+            background-color: var(--c-bg-btn); color: #ccc; border: 1px solid var(--c-border-light);
+            border-radius: var(--radius-sm); padding: 14px 0; font-size: 1rem;
+            font-weight: 700; cursor: pointer; transition: all 0.15s ease; width: 100%; font-family: var(--font-main);
+        }
+        .btn:active { transform: scale(0.98); }
+        .btn:hover { background-color: #222; color: #fff; border-color: #666; }
+        .btn.selected { background-color: var(--c-bg-btn-active); color: var(--c-text-inverse); border-color: var(--c-bg-btn-active); }
+        .btn.selected:hover { background-color: #e0e0e0; }
+        
+        /* 推奨外ボタンのデザイン（点線枠・薄字・暗い背景） */
+        .btn-caution, .btn-suspended-view, .btn-used { 
+            border-style: dashed !important; 
+            border-color: var(--c-border-light) !important; 
+            color: var(--c-text-muted) !important; 
+            background-color: #0e0e0e !important; /* 背景を暗く変更 */
+        }
+        .btn-caution:hover, .btn-suspended-view:hover, .btn-used:hover { 
+            color: var(--c-text-sub) !important; 
+            border-color: var(--c-text-sub) !important; 
+        }
+        .btn-caution.selected, .btn-suspended-view.selected, .btn-used.selected { 
+            background-color: #ccc !important; 
+            color: #000 !important; 
+            border-style: solid !important; 
+            border-color: #ccc !important; 
+            opacity: 1; 
+        }
+        
+        /* 「不明」ボタン等のフォントサイズ縮小用 */
+        .btn-text-sm {
+            font-size: 0.85rem !important;
+        }
+
+        .input-block { margin-bottom: 24px; }
+
+        /* =========================================
+           Input Components (Modal Specific)
+           ========================================= */
+        .vehicle-btn { height: 56px; font-size: 1.3rem; display: flex; justify-content: center; align-items: center; }
+        .profile-btn { font-size: 0.75rem; padding: 10px 0; line-height: 1.2; word-break: break-all; }
+        
+        .vehicle-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        
+        /* 任意項目エリア */
+        .optional-area {
+            border: 1px dashed #222;
+            padding: 15px; 
+            border-radius: var(--radius-sm);
+            margin-bottom: 0;
+            position: relative;
+            background-color: rgba(255, 255, 255, 0.03);
+            display: flex;
+            flex-direction: column;
+            gap: 15px; 
+        }
+        .optional-area .label { color: #777; } 
+        .optional-area .btn { background-color: #222; border-color: var(--c-border-light); color: #ccc; }
+        .optional-area .btn.selected { background-color: var(--c-bg-btn-active); color: var(--c-text-inverse); border-color: var(--c-bg-btn-active); opacity: 1; }
+
+        .optional-area .input-block { margin-bottom: 0; }
+        .optional-area .input-block:last-child { margin-bottom: 0; }
+
+        .profile-options { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        
+        .suspension-area { border: none; padding: 0; margin-bottom: 0; background: transparent; }
+        .suspend-btn-container { display: flex; justify-content: center; gap: 10px; }
+        
+        .suspend-btn { 
+            flex: 1; padding: 10px 0; background-color: #222; border: 1px solid var(--c-border-light); color: #ccc; 
+            border-radius: var(--radius-sm); font-size: 0.75rem; cursor: pointer; transition: 0.2s; font-weight: 700; font-family: var(--font-main);
+        }
+        .suspend-btn.active { 
+            background: var(--c-caution-bg) !important; border-color: var(--c-caution) !important; color: var(--c-caution) !important; font-weight: bold; opacity: 1;
+        }
+        
+        .memo-area { margin-bottom: 0; }
+        .optional-area textarea { 
+            width: 100%; height: 80px; padding: 12px; background: #222; color: #ccc; 
+            border: 1px solid #333; border-radius: var(--radius-sm); resize: none; 
+            font-size: 0.95rem; box-sizing: border-box; font-family: var(--font-main); line-height: 1.5; display: block; 
+        }
+        .optional-area textarea:focus { border-color: #555; outline: none; }
+
+        /* =========================================
+           Log List Styles
+           ========================================= */
+        .log-list-container,
+        .shared-content-inner,
+        #mylog-list-area { 
+            display: flex; flex-direction: column; gap: 10px; 
+        }
+
+        details.daily-log { background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius-sm); margin-bottom: 0; overflow: visible; text-align: left; }
+        summary.daily-summary { 
+            background: #1a1a1a; padding: 12px 15px; 
+            cursor: pointer; font-weight: bold; 
+            display: flex; align-items: center; color: var(--c-text-accent); 
+            list-style: none; border-bottom: 1px solid #222; 
+            justify-content: space-between;
+            position: sticky; z-index: 5; 
+            border-top-left-radius: var(--radius-sm); border-top-right-radius: var(--radius-sm);
+        }
+        details.daily-log[open] > summary.daily-summary { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+        details.daily-log:not([open]) > summary.daily-summary { border-bottom-left-radius: var(--radius-sm); border-bottom-right-radius: var(--radius-sm); border-bottom: none; }
+        summary.daily-summary::-webkit-details-marker { display: none; }
+        
+        .summary-left { display: flex; align-items: center; gap: 10px; flex: 1; }
+        .summary-left .material-symbols-outlined { transition: transform 0.3s; }
+        details.daily-log[open] > summary.daily-summary .summary-left .material-symbols-outlined { transform: rotate(90deg); }
+        .summary-info { text-align: left; }
+        .summary-date { font-weight: bold; font-size: 1rem; }
+        .summary-count { font-size: 0.85rem; color: var(--c-text-muted); margin-left: 8px; font-weight: bold; }
+        
+        .summary-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+        
+        .publish-status-text { font-size: 0.75rem; color: var(--c-text-muted); font-weight: normal; transition: color 0.2s; }
+        .publish-status-text.active { color: var(--c-text-accent); font-weight: bold; }
+
+        .toggle-switch-sm { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
+        .toggle-switch-sm input { opacity: 0; width: 0; height: 0; }
+        .slider-sm { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 24px; border: 1px solid #555; }
+        .slider-sm:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: var(--c-text-sub); transition: .4s; border-radius: 50%; }
+        input:checked + .slider-sm { background-color: #ddd; border-color: #fff; }
+        input:checked + .slider-sm:before { transform: translateX(19px); background-color: #000; }
+
+        .log-entry { display: flex; flex-direction: column; border-bottom: 1px solid var(--c-bg-element); padding: 12px 15px; gap: 6px; }
+        .log-entry:last-child { border-bottom: none; }
+        .log-entry.shared-log-entry { padding: 12px 15px; }
+
+        .log-grid { display: grid; align-items: center; gap: 8px; width: 100%; padding: 0; }
+        /* 修正: log-time の幅を 60px -> 50px に変更 */
+        .log-grid-my { grid-template-columns: 32px 50px 1fr auto; }
+        .log-grid-shared { grid-template-columns: 32px 32px 50px 1fr auto; }
+        
+        .log-time { color: var(--c-text-muted); font-size: 0.85rem; text-align: left; font-weight: bold; margin-top: 2px; }
+        .log-count { color: var(--c-text-sub); font-weight: 700; font-size: 1.05rem; text-align: center; margin-right: 4px; line-height: 1.2; }
+        .log-content-wrapper { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; overflow: hidden; }
+        .log-main-line { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; overflow: hidden; max-width: 100%; }
+        .log-memo-line { font-size: 0.75rem; color: var(--c-text-muted); white-space: pre-wrap; word-break: break-all; line-height: 1.3; margin-top: 2px; }
+        .text-location { font-size: 1.05rem; font-weight: 700; color: var(--c-text-accent); }
+        .text-vehicle { font-size: 1.05rem; font-weight: 700; color: var(--c-text-accent); }
+        .log-separator { color: var(--c-text-muted); font-size: 0.85rem; font-weight: bold; vertical-align: middle; margin-top: -2px; display: inline-block;}
+        .log-label-no { color: var(--c-text-muted); font-size: 0.85rem; font-weight: bold; }
+        .text-profile { font-size: 0.75rem; color: var(--c-text-muted); margin-left: 4px; } 
+        .log-actions { display: flex; gap: 4px; justify-content: flex-end; align-self: center; margin-top: 0; position: relative; }
+        .author-icon-list { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--c-border-light); object-fit: cover; margin-top: 0; }
+        
+        .icon-btn { background: transparent; border: none; color: var(--c-text-muted); width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .icon-btn:hover { background-color: rgba(255, 255, 255, 0.1); color: var(--c-text-accent); }
+        .icon-btn .material-symbols-outlined { font-size: 1.2rem; }
+
+        /* Status Table */
+        .status-scroll-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 20px; border: none; border-radius: 4px; margin-top: 0; }
+        .shared-status-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+        .shared-status-table th, .shared-status-table td { border: 1px solid var(--c-border); padding: 10px; text-align: center; color: var(--c-text-main); white-space: nowrap; background-color: var(--c-bg-card); }
+        .shared-status-table th { background: var(--c-bg-element); color: var(--c-text-sub); font-weight: bold; position: sticky; top: 0; z-index: 10; }
+        .shared-status-table th.fixed-col-date { z-index: 15; left: 0; width: 1px; white-space: nowrap; }
+        .shared-status-table td.fixed-col-date { position: sticky; left: 0; background: var(--c-bg-card); z-index: 2; font-weight: bold; color: var(--c-text-accent); border-right: 1px solid var(--c-border-light); width: 1px; white-space: nowrap; }
+        .shared-status-table td.td-suspended { color: var(--c-caution); font-weight: bold; }
+        .shared-status-table .col-tour { width: 1px; white-space: nowrap; }
+        .author-cell { white-space: nowrap; vertical-align: middle; text-align: left; padding: 10px; }
+        .author-list { display: flex; flex-direction: row; gap: 4px; align-items: center; flex-wrap: wrap; }
+        .author-icon-mini { width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--c-border-light); flex-shrink: 0; object-fit: cover; }
+        
+        /* FAB */
+        .fab {
+            position: fixed; bottom: 30px; right: 30px;
+            width: 56px; height: 56px; border-radius: 50%;
+            background-color: var(--c-text-accent); color: #000;
+            border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; z-index: 1000; transition: transform 0.2s, background-color 0.2s;
+        }
+        .fab:active { transform: scale(0.95); }
+        .fab:hover { background-color: #ddd; }
+        .fab .material-symbols-outlined { font-size: 28px; }
+
+        @media (min-width: 640px) {
+            .fab { left: 50%; right: auto; margin-left: 220px; }
+        }
+
+        /* Modal */
+        .modal-overlay { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(5px); 
+            z-index: 2000;
+            /* 修正: display: none をやめて visibility/opacity で制御しスライドアニメーションを実現 */
+            display: flex;
+            visibility: hidden;
+            opacity: 0; 
+            transition: opacity 0.3s, visibility 0.3s;
+            pointer-events: none; /* Hidden時はクリック不可 */
+            align-items: flex-end; 
+        }
+        .modal-overlay.active { 
+            visibility: visible;
+            opacity: 1;
+            pointer-events: auto; /* Active時はクリック可 */
+        }
+        
+        /* ボトムシートのみ背景を不透明化・ぼかしなしに上書き */
+        /* 修正: 記録モーダル (#input-modal) も同様のスタイルを適用 */
+        #action-sheet-modal.modal-overlay,
+        #input-modal.modal-overlay {
+            background: rgba(0, 0, 0, 0.5); /* 背面が見える半透明 */
+            backdrop-filter: none;
+        }
+        
+        .modal-content { 
+            background: #1a1a1a; width: 100%; max-width: 600px; margin: 0 auto;
+            border-radius: 20px 20px 0 0; border: 1px solid #333; border-bottom: none;
+            display: flex; flex-direction: column; box-shadow: 0 -5px 25px rgba(0,0,0,0.5); 
+            height: auto; max-height: 90vh; overflow: hidden;
+            transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .modal-overlay.active .modal-content { transform: translateY(0); }
+        
+        .modal-header { 
+            padding: 15px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; 
+        }
+
+        .header-save-btn {
+            background: var(--c-text-accent); color: var(--c-text-inverse);
+            font-weight: bold; font-size: 0.95rem; /* サイズ調整: 少し大きく */
+            cursor: pointer;
+            padding: 8px 20px; /* サイズ調整: 押しやすく */
+            border-radius: 9999px; border: none;
+            transition: opacity 0.2s, background 0.2s; white-space: nowrap; display: block; 
+        }
+        .header-save-btn:disabled { opacity: 0.3; cursor: not-allowed; background: #555; color: #aaa; }
+        
+        /* 上部エリア */
+        .modal-top-section {
+            background: #111; padding: 15px; border-bottom: 1px solid #222;
+            flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; align-items: center;
+        }
+
+        .nav-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+        .nav-center { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        
+        .nav-icon-btn {
+            background: transparent; border: none; color: var(--c-text-sub); width: 36px; height: 36px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s;
+        }
+        .nav-icon-btn:hover { background: rgba(255,255,255,0.1); color: var(--c-text-accent); }
+        .nav-icon-btn:disabled { opacity: 0; pointer-events: none; }
+
+        .wizard-progress { display: flex; gap: 6px; justify-content: center; margin-bottom: 5px; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: #444; transition: background 0.3s; }
+        .dot.active { background: var(--c-text-accent); }
+
+        .datetime-block {
+            width: 100%; text-align: center; background: #1a1a1a; border: 1px solid #333; 
+            border-radius: var(--radius-sm); padding: 12px; box-sizing: border-box; cursor: pointer; margin-bottom: 0; 
+        }
+        .status-datetime { display: block; width: 100%; font-size: 1.2rem; font-weight: bold; color: var(--c-text-main); }
+        .status-selection { width: 100%; text-align: center; font-size: 0.9rem; color: var(--c-text-sub); }
+        
+        .modal-body { padding: 0; flex: 1; overflow: hidden; position: relative; background: #111; }
+
+        .wizard-slider { display: flex; width: 100%; height: 100%; transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); }
+
+        .wizard-step {
+            flex: 0 0 100%; width: 100%; padding: 15px; box-sizing: border-box;
+            overflow-y: auto; display: flex; flex-direction: column; justify-content: flex-end; gap: 0;
+        }
+        
+        .step-message { text-align: center; margin-bottom: 10px; z-index: 10; color: var(--c-text-sub); font-size: 0.9rem; }
+        .step-buttons { display: grid; gap: 10px; width: 100%; margin-bottom: 0; }
+        
+        .step-buttons.floor-buttons { grid-template-columns: 1fr 1fr; }
+        .step-btn-floor { padding: 40px 0; font-size: 1.5rem; font-weight: bold; background: #222; border: 1px solid #444; color: #ccc; border-radius: var(--radius-md); cursor: pointer; }
+        .step-btn-floor:active, .step-btn-floor.selected { background: #ddd; color: #000; }
+        
+        .step-buttons.tour-buttons { grid-template-columns: 1fr 1fr 1fr; }
+        .step-btn-tour { padding: 40px 0; font-size: 1.5rem; font-weight: bold; background: #222; border: 1px solid #444; color: #ccc; border-radius: var(--radius-md); cursor: pointer; }
+        .step-btn-tour:active, .step-btn-tour.selected { background: #ddd; color: #000; }
+        
+        .step-buttons.vehicle-buttons { grid-template-columns: repeat(3, 1fr); gap: 12px; height: auto; justify-content: flex-end;}
+        .step-btn-vehicle { height: 60px; font-size: 1.2rem; font-weight: bold; background: #222; border: 1px solid #444; color: #ccc; border-radius: var(--radius-sm); cursor: pointer; }
+        .step-btn-vehicle:active, .step-btn-vehicle.selected { background: #ddd; color: #000; }
+        
+        .header-icon-btn {
+            background: transparent; border: none; color: var(--c-text-sub); width: 36px; height: 36px; border-radius: 50%;
+            cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s; padding: 0; 
+        }
+        .header-icon-btn:hover { background: rgba(255, 255, 255, 0.1); color: var(--c-text-accent); }
+
+        /* Confirm Modal */
+        #custom-confirm-modal { z-index: 3000; }
+        .center-overlay { align-items: center; justify-content: center; }
+        .center-overlay .modal-content.confirm-modal-content {
+            width: 85%; max-width: 320px; height: auto; min-height: auto;
+            border-radius: 12px; border: 1px solid var(--c-border-light);
+            padding: 24px 20px; text-align: center;
+            transform: translateY(20px); transition: transform 0.3s, opacity 0.3s; background: #1a1a1a;
+        }
+        .center-overlay.active .modal-content.confirm-modal-content { transform: translateY(0); opacity: 1; }
+        .confirm-body { margin-bottom: 24px; display: flex; flex-direction: column; align-items: center; gap: 15px; }
+        .confirm-icon { font-size: 2.5rem; color: var(--c-text-secondary); }
+        .confirm-text { font-size: 0.95rem; color: var(--c-text-primary); line-height: 1.6; white-space: pre-wrap; margin: 0; font-family: var(--font-main); }
+        .confirm-actions { display: flex; gap: 12px; width: 100%; justify-content: center; }
+        
+        /* Confirm Actions Buttons */
+        .confirm-actions button { 
+            flex: 1; min-width: 0; 
+            padding: 12px 0; 
+            border-radius: 50px; /* Capsule shape */
+            font-weight: bold; 
+            font-size: 0.9rem; 
+            cursor: pointer; 
+            transition: all 0.2s;
+            font-family: var(--font-main);
+        }
+        
+        .btn-text {
+            background: transparent;
+            border: 1px solid var(--c-border-light);
+            color: var(--c-text-sub);
+        }
+        .btn-text:active { transform: scale(0.96); }
+        .btn-text:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--c-text-main);
+            border-color: var(--c-text-sub);
+        }
+
+        .btn-primary {
+            background: var(--c-text-accent);
+            color: var(--c-text-inverse);
+            border: 1px solid var(--c-text-accent);
+        }
+        .btn-primary:active { transform: scale(0.96); }
+        .btn-primary:hover {
+            opacity: 0.9;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+        }
+
+        /* Action Sheet Styles */
+        .action-sheet-list { list-style: none; padding: 20px; margin: 0; display: flex; flex-direction: column; gap: 12px; }
+        
+        .action-sheet-btn {
+            font-size: 1rem; padding: 14px;
+            text-align: center; cursor: pointer; display: block; 
+            border-radius: 50px; /* Capsule shape like confirm modal */
+            transition: background 0.2s, opacity 0.2s; width: 100%;
+            font-weight: bold;
+            font-family: var(--font-main);
+            border: none; /* Reset border */
+        }
+
+        /* 削除 & 修正 (白背景) */
+        .sheet-btn-primary, .sheet-btn-delete {
+            background: #ffffff;
+            color: #000000;
+        }
+        
+        .sheet-btn-delete {
+            color: var(--c-caution); /* 赤文字 */
+        }
+
+        /* キャンセル (枠線のみ) */
+        .sheet-btn-cancel {
+            background: transparent;
+            border: 1px solid var(--c-border-light);
+            color: var(--c-text-sub);
+        }
+        
+        .action-sheet-btn:active { transform: scale(0.98); }
+        
+        /* Responsive */
+        @media (max-width: 600px) {
+            .date-full { display: inline; } 
+            .date-short { display: none; }
+            .author-name-mini { display: none; }
+            .log-actions.desktop-only { display: none !important; }
+            .log-actions.mobile-only { display: flex !important; }
+            .author-list { flex-direction: row; flex-wrap: wrap; }
+        }
+        @media (min-width: 601px) {
+            .date-full { display: inline; }
+            .date-short { display: none; }
+            .log-actions.desktop-only { display: flex !important; }
+            .log-actions.mobile-only { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-wrapper">
+        <header class="app-header">
+            <div class="header-left">
+                <button id="auth-btn" class="auth-btn">
+                    <!-- Icon will be injected by JS, but set default to login -->
+                    <span class="material-symbols-outlined">login</span>
+                </button>
+            </div>
+            <h1 class="app-title">TOT LOGGER</h1>
+            <div class="header-right"></div>
+        </header>
+
+        <main class="app-container">
+            <!-- タブ -->
+            <div class="tab-group sticky-tab">
+                 <button class="tab-btn active" data-tab="mylog">マイログ</button>
+                 <button class="tab-btn" data-tab="logs">みんなのログ</button>
+                 <button class="tab-btn" data-tab="status">運営状況</button>
+            </div>
+            
+            <!-- コンテンツエリア -->
+            <div id="main-content-area" class="content-area">
+                <!-- スライダー用ラッパー -->
+                <div class="tab-slider-wrapper">
+                    <div class="tab-slider" id="tab-slider">
+                        <div class="tab-pane" id="pane-mylog">
+                            <!-- フィルター削除済み -->
+                            <div id="mylog-list-area"></div>
+                        </div>
+                        <div class="tab-pane" id="pane-logs"></div>
+                        <div class="tab-pane" id="pane-status"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- FAB -->
+        <button id="fab-add" class="fab" onclick="window.openInputModal()">
+            <span class="material-symbols-outlined">add</span>
+        </button>
+
+        <!-- Input Modal (Wizard Style) -->
+        <div id="input-modal" class="modal-overlay">
+            <div class="modal-content">
+                <!-- Header: Close button only -->
+                <div class="modal-header">
+                    <div class="modal-header-left">
+                         <button id="modal-close-btn" class="header-icon-btn" onclick="window.closeInputModal()"><span class="material-symbols-outlined">close</span></button>
+                    </div>
+                    <!-- ヘッダー右に記録ボタン -->
+                    <div class="modal-header-right">
+                        <button id="header-quick-save-btn" class="header-save-btn" onclick="window.saveLog()" disabled>記録する</button>
+                    </div>
+                </div>
+                
+                <!-- Top Section: Nav, Progress, Status -->
+                <div class="modal-top-section">
+                    <div class="nav-row">
+                        <button class="nav-icon-btn" id="nav-back" onclick="window.goPrevStep()">
+                            <span class="material-symbols-outlined">arrow_back</span>
+                        </button>
+                        <div class="nav-center">
+                            <div class="wizard-progress">
+                                <div class="dot active" id="dot-0"></div>
+                                <div class="dot" id="dot-1"></div>
+                                <div class="dot" id="dot-2"></div>
+                                <div class="dot" id="dot-3"></div>
+                            </div>
+                        </div>
+                        <button class="nav-icon-btn" id="nav-next" onclick="window.goNextStep()">
+                            <span class="material-symbols-outlined">arrow_forward</span>
+                        </button>
+                    </div>
+                    
+                    <!-- datetime block -->
+                    <div class="datetime-block" onclick="window.editDateTime()">
+                        <div class="status-datetime" id="status-date-time">--/-- <span style="margin-right: 1.5em;"></span> --:--</div>
+                        <!-- Hidden inputs for triggering pickers -->
+                        <input type="datetime-local" id="hidden-datetime-picker" style="position:absolute; visibility:hidden;">
+                    </div>
+                    <div class="status-selection" id="status-selection">--</div>
+                </div>
+
+                <div class="modal-body">
+                    <div class="wizard-slider" id="wizard-slider">
+                        
+                        <!-- Step 1: Floor -->
+                        <div class="wizard-step" data-step="0">
+                            <div class="step-message">フロアを選択してください</div>
+                            <div class="step-buttons floor-buttons">
+                                <button class="step-btn-floor" data-val="1" onclick="window.selectFloor(1)">1F</button>
+                                <button class="step-btn-floor" data-val="2" onclick="window.selectFloor(2)">2F</button>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Tour -->
+                        <div class="wizard-step" data-step="1">
+                            <div class="step-message">ツアーを選択してください</div>
+                            <div class="step-buttons tour-buttons">
+                                <button class="step-btn-tour" data-val="A" onclick="window.selectTour('A')">A</button>
+                                <button class="step-btn-tour" data-val="B" onclick="window.selectTour('B')">B</button>
+                                <button class="step-btn-tour" data-val="C" onclick="window.selectTour('C')">C</button>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Vehicle -->
+                        <div class="wizard-step" data-step="2">
+                            <div class="step-message">機体番号を選択してください</div>
+                            <div class="step-buttons vehicle-buttons" id="vehicle-container">
+                                <!-- JSで生成 -->
+                            </div>
+                        </div>
+
+                        <!-- Step 4: Options & Confirm -->
+                        <div class="wizard-step" data-step="3" style="justify-content: flex-start;">
+                            
+                            <!-- 修正: マージンを 0 -> 10px に変更 -->
+                            <div class="step-message" style="margin-bottom:10px;">オプションを選択してください（任意）</div>
+                            
+                            <!-- 任意項目エリア -->
+                            <div class="optional-area">
+                                <div id="block-profile" class="input-block">
+                                    <div class="label">落下プロファイル</div>
+                                    <div class="profile-options">
+                                        <button id="prof-std" class="btn profile-btn" data-profile="TOWER 1">通常版</button>
+                                        <button id="prof-l13" class="btn profile-btn" data-profile="TOWER 2">Level 13</button>
+                                        <button id="prof-shadow" class="btn profile-btn" data-profile="TOWER 3">シャドウ</button>
+                                        <button id="prof-unknown" class="btn profile-btn" data-profile="UNKNOWN">不明</button>
+                                    </div>
+                                </div>
+
+                                <div class="suspension-area" style="margin-bottom: 0px;">
+                                    <div class="label">運営休止ツアー</div>
+                                    <div class="suspend-btn-container">
+                                        <button id="suspend-btn-A" class="suspend-btn">A</button>
+                                        <button id="suspend-btn-B" class="suspend-btn">B</button>
+                                        <button id="suspend-btn-C" class="suspend-btn">C</button>
+                                    </div>
+                                </div>
+
+                                <div class="memo-area">
+                                    <div class="label">メモ</div>
+                                    <textarea id="memo-input" placeholder="メモを入力..." rows="3"></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Sheet Modal -->
+        <div id="action-sheet-modal" class="modal-overlay" onclick="if(event.target === this) window.closeActionSheet()">
+            <div class="modal-content" style="height:auto;">
+                <div class="modal-body" style="padding: 0;">
+                    <div class="action-sheet-list">
+                        <!-- 削除 (一番上) -->
+                        <button class="action-sheet-btn sheet-btn-delete" onclick="window.performAction('delete')">
+                            削除する
+                        </button>
+                        <!-- 修正 -->
+                        <button class="action-sheet-btn sheet-btn-primary" onclick="window.performAction('edit')">
+                            修正する
+                        </button>
+                        <!-- キャンセル -->
+                        <button class="action-sheet-btn sheet-btn-cancel" onclick="window.closeActionSheet()">
+                            キャンセル
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 確認用モーダル (Center Overlay) -->
+        <div id="custom-confirm-modal" class="modal-overlay center-overlay">
+            <div class="modal-content confirm-modal-content">
+                <div class="confirm-body">
+                    <span class="material-symbols-outlined confirm-icon">help</span>
+                    <p id="confirm-message" class="confirm-text"></p>
+                </div>
+                <div class="confirm-actions">
+                    <button id="confirm-cancel-btn" class="btn-text">キャンセル</button>
+                    <button id="confirm-ok-btn" class="btn-primary">OK</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ログイン用モーダル (追加) -->
+        <div id="login-modal" class="modal-overlay center-overlay">
+            <div class="modal-content confirm-modal-content">
+                <div class="confirm-body">
+                    <span class="material-symbols-outlined confirm-icon">login</span>
+                    <p class="confirm-text">サインインが必要です</p>
+                </div>
+                <div class="confirm-actions">
+                    <button class="btn-text" onclick="window.closeLoginModal()">キャンセル</button>
+                    <button class="btn-primary" onclick="window.performLogin()">X でサインイン</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, setDoc, getDocs, getDoc, doc, onSnapshot, query, orderBy, serverTimestamp, where, limit } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, signInWithPopup, TwitterAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+        // Standard Config
+        const firebaseConfig = {
+          apiKey: "AIzaSyD4OXJQwa2YWfxbGS--qqz9ddi0VNio0xg",
+          authDomain: "tot-logger.firebaseapp.com",
+          projectId: "tot-logger",
+          storageBucket: "tot-logger.firebasestorage.app",
+          messagingSenderId: "485860677602",
+          appId: "1:485860677602:web:e11380515fd9f1805ecbbb"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        const CONSTANTS = {
+            PROFILES: { 'TOWER 1': '通常版', 'TOWER 2': 'Level 13', 'TOWER 3': 'シャドウ', 'UNKNOWN': '不明' },
+            MESSAGES: {
+                loginRequired: "サインインが必要です",
+                confirmLogout: "サインアウトしますか？",
+                vehicle7Caution: "7号機は消失したと言われています。記録しますか？",
+                usedVehicleCaution: "この機体番号は、この日の他の乗り場ですでに記録されています。記録しますか？",
+                confirmPublish: "この記録を「みんなのログ」に公開しますか？",
+                confirmUnpublish: "非公開にしますか？"
+            },
+            COLORS: {
+                A: '#ef5350', B: '#42a5f5', C: '#66bb6a',
+                1: '#ffca28', 2: '#ab47bc',
+                unknown: '#777'
+            }
+        };
+
+        const State = {
+            user: null, logs: [], specialSchedules: [], publishedDates: new Set(), openHistoryDates: new Set(),
+            input: { floor: null, tour: null, vehicle: null, profile: null, suspendedTours: [], memo: '' },
+            editingId: null, 
+            currentDateVal: "", 
+            currentTimeVal: "",
+            sharedReports: [], 
+            currentSharedTab: 'mylog',
+            // currentFilter: 'all',  // 削除
+            currentStep: 0,
+            maxStepReached: 0, 
+            targetLogId: null 
+        };
+        
+        // Standard Paths
+        window.getPaths = (userId) => {
+            if (!userId) return null;
+            return { 
+                logs: collection(db, 'users', userId, 'logs'), 
+                shared: collection(db, 'shared_reports') 
+            };
+        };
+
+        const Logic = {
+            getTodayStr: () => {
+                const d = new Date();
+                const year = d.getFullYear();
+                const month = ('0' + (d.getMonth() + 1)).slice(-2);
+                const day = ('0' + d.getDate()).slice(-2);
+                return `${year}-${month}-${day}`;
+            },
+            getNowDatetimeLocalStr: () => {
+                const d = new Date();
+                const year = d.getFullYear();
+                const month = ('0' + (d.getMonth() + 1)).slice(-2);
+                const day = ('0' + d.getDate()).slice(-2);
+                const hour = ('0' + d.getHours()).slice(-2);
+                const min = ('0' + d.getMinutes()).slice(-2);
+                return `${year}-${month}-${day}T${hour}:${min}`;
+            },
+            calculateDailyState(dateVal, excludeId = null) {
+                const dayLogs = State.logs.filter(l => l.date === dateVal && l.id !== excludeId);
+                const assignments = {};
+                const suspendedSet = new Set(); 
+                dayLogs.forEach(log => {
+                    if (log.tour && log.floor && log.vehicle) {
+                        assignments[`${log.tour}-${log.floor}`] = log.vehicle;
+                    }
+                    if (log.suspended) log.suspended.forEach(t => suspendedSet.add(t));
+                });
+                return { 
+                    assignments, 
+                    suspended: { A: suspendedSet.has('A'), B: suspendedSet.has('B'), C: suspendedSet.has('C') } 
+                };
+            },
+            // 直前のログの休止状態を取得するロジック (最適化版)
+            getSuspendedDefault(dateVal, timeVal) {
+                // 修正: まず日付でフィルタリングして処理対象を減らす
+                const dayLogs = State.logs.filter(l => l.date === dateVal);
+                if (dayLogs.length === 0) return [];
+
+                // 時刻でソート（降順）して、指定時刻より前の最新のものを探す
+                dayLogs.sort((a,b) => (b.time || "").localeCompare(a.time || ""));
+                
+                // timeValより前の時刻のログを探す
+                const prevLog = dayLogs.find(l => (l.time || "") < timeVal);
+                
+                if (prevLog && prevLog.suspended) {
+                    return [...prevLog.suspended]; // 参照渡しを避けるためコピー
+                }
+                return [];
+            },
+            analyzeProfileStatus(dateStr, tour) {
+                // 1. 優先ルール: 同じ搭乗日・同じツアーのログがあれば、そのプロファイルを優先
+                const sameDayTourLogs = State.logs.filter(l => 
+                    l.date === dateStr && 
+                    l.tour === tour && 
+                    l.id !== State.editingId && 
+                    l.profile && l.profile !== 'UNKNOWN'
+                );
+
+                if (sameDayTourLogs.length > 0) {
+                    const targetLog = sameDayTourLogs[0];
+                    const p = targetLog.profile;
+                    const all = ['TOWER 1', 'TOWER 2', 'TOWER 3', 'UNKNOWN'];
+                    return { 
+                        defaultProfile: p, 
+                        cautionProfiles: all.filter(x => x !== p) 
+                    };
+                }
+
+                // 2. スペシャルプログラム判定
+                const target = State.specialSchedules.find(s => dateStr >= s.start && dateStr <= s.end);
+                const program = target ? target.type : null;
+                
+                // ルールA: Level 13
+                if (program === 'L13') {
+                    return { defaultProfile: 'TOWER 2', cautionProfiles: ['TOWER 1', 'TOWER 3', 'UNKNOWN'] };
+                }
+                
+                // ルールB: Shadow
+                if (program === 'SHADOW') {
+                    return { defaultProfile: 'TOWER 3', cautionProfiles: ['TOWER 1', 'TOWER 2', 'UNKNOWN'] };
+                }
+                
+                // ルールC: UNLIMITED または (未登録 かつ 1~4月)
+                const month = parseInt(dateStr.split('-')[1], 10);
+                const isSpring = (month >= 1 && month <= 4);
+                
+                if (program === 'UNLIMITED' || (!program && isSpring)) {
+                    // デフォルトはUNKNOWN、他は警告なし
+                    return { defaultProfile: 'UNKNOWN', cautionProfiles: [] };
+                }
+                
+                // ルールD: 通常 (NORMAL または 上記以外の期間)
+                return { defaultProfile: 'TOWER 1', cautionProfiles: ['TOWER 2', 'TOWER 3', 'UNKNOWN'] };
+            }
+        };
+
+        function formatDate(dateStr) {
+            return `<span class="date-full">${dateStr.replace(/-/g, '/')}</span>`;
+        }
+        
+        // 呪い演出関数削除済み
+
+        // Helper to consistently get date
+        window.getEffectiveDateVal = () => {
+            const picker = document.getElementById('hidden-datetime-picker');
+            if (picker && picker.value) {
+                return picker.value.split('T')[0];
+            }
+            return State.currentDateVal || Logic.getTodayStr();
+        };
+
+        // Window level renderVehicleGrid
+        window.renderVehicleGrid = () => {
+             const container = document.getElementById('vehicle-container'); 
+             if (!container) return;
+             container.innerHTML = '';
+             
+             const dateVal = window.getEffectiveDateVal();
+             const tour = State.input.tour;
+             const floor = State.input.floor;
+             
+             // Wait for tour/floor selection
+             if (!tour || !floor) {
+                 for(let i=1; i<=9; i++) {
+                     const b = document.createElement('button');
+                     b.className = 'step-btn-vehicle';
+                     b.innerText = i;
+                     container.appendChild(b);
+                 }
+                 return;
+             }
+
+             const currentLoc = `${tour}-${floor}`;
+             const usedVehicles = [];
+             
+             State.logs.forEach(l => {
+                 if (l.date === dateVal && l.id !== State.editingId) {
+                     const logLoc = `${l.tour}-${l.floor}`;
+                     // Only warn if used in a DIFFERENT location
+                     if (logLoc !== currentLoc && l.vehicle && l.vehicle !== '不明') {
+                         usedVehicles.push(parseInt(l.vehicle));
+                     }
+                 }
+             });
+
+             for(let i=1; i<=9; i++) {
+                 const b = document.createElement('button');
+                 b.className = 'step-btn-vehicle';
+                 b.innerText = i;
+                 b.dataset.val = i;
+                 
+                 if (i === 7) b.classList.add('btn-caution');
+                 if (usedVehicles.includes(i)) b.classList.add('btn-used');
+
+                 if (i===9) { 
+                     b.innerText = "不明"; 
+                     b.dataset.val = "不明"; 
+                     b.onclick = () => window.selectVehicle("不明"); 
+                     b.classList.add('btn-caution');
+                     // 追加: 不明ボタンの文字サイズを小さくするクラス
+                     b.classList.add('btn-text-sm');
+                 } else { 
+                     b.onclick = () => window.selectVehicle(i); 
+                 }
+                 container.appendChild(b);
+             }
+             
+             const currentV = State.input.vehicle;
+             if (currentV) {
+                 const target = Array.from(container.children).find(b => 
+                     (currentV === '不明' && b.dataset.val === '不明') || 
+                     (parseInt(b.dataset.val) === parseInt(currentV))
+                 );
+                 if (target) target.classList.add('selected');
+             }
+        };
+
+        // UIManager definition
+        const UIManager = {
+             init: () => {
+                 document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.onclick = async (e) => {
+                        const target = e.currentTarget;
+                        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                        target.classList.add('active'); 
+                        const tab = target.dataset.tab;
+                        State.currentSharedTab = tab;
+                        window.updateTabPosition(); 
+
+                        if (tab === 'logs' || tab === 'status') {
+                            await window.loadSharedReports();
+                        } else {
+                            window.renderMainContent();
+                        }
+                    };
+                });
+             },
+             
+             // updateFilters: 削除済み
+
+             renderHistory: (container) => {
+                 // 修正: アイコンを削除しテキストのみに
+                 if (!State.logs.length) { container.innerHTML = "<div class='empty-state'>記録がありません</div>"; return; }
+                 
+                 // フィルタリング削除: 全件表示
+                 const filteredLogs = State.logs;
+
+                 if (filteredLogs.length === 0) { container.innerHTML = "<div class='empty-state'>記録がありません</div>"; return; }
+
+                 const groups = {}; filteredLogs.forEach(l => { if (!groups[l.date]) groups[l.date] = []; groups[l.date].push(l); });
+                 
+                 const sortedDates = Object.keys(groups).sort((a,b)=>b.localeCompare(a));
+                 const todayStr = Logic.getTodayStr();
+                 
+                 let html = '';
+                 sortedDates.forEach(date => {
+                     const logs = groups[date];
+                     const isPub = State.publishedDates.has(date);
+                     
+                     // 修正: isToday の定義を isOpen の計算よりも前に移動
+                     const isToday = (date === todayStr);
+                     const isOpen = isToday || State.openHistoryDates.has(date);
+                     
+                     // 自分のログなので displayCount を計算
+                     logs.sort((a,b) => (a.time || "").localeCompare(b.time || "")); // ASC for numbering
+                     logs.forEach((l, idx) => { l.displayCount = idx + 1; });
+                     logs.sort((a,b) => (b.time || "").localeCompare(a.time || "")); // DESC for display
+
+                     html += window.renderDailyGroupHTML(date, logs, {
+                         isOpen: isOpen,
+                         showToggle: true,
+                         isPublished: isPub,
+                         isSharedView: false
+                     });
+                 });
+                 container.innerHTML = html;
+                 
+                 container.querySelectorAll('details.daily-log').forEach(el => el.addEventListener('toggle', () => el.open ? State.openHistoryDates.add(el.dataset.date) : State.openHistoryDates.delete(el.dataset.date)));
+            },
+            
+            showConfirmModal: async (msg) => {
+                return new Promise(res => {
+                    const m = document.getElementById('custom-confirm-modal');
+                    if(!m) return res(false);
+                    document.getElementById('confirm-message').innerText = msg;
+                    m.classList.add('active');
+                    const okBtn = document.getElementById('confirm-ok-btn');
+                    const cancelBtn = document.getElementById('confirm-cancel-btn');
+                    
+                    const newOkBtn = okBtn.cloneNode(true);
+                    const newCancelBtn = cancelBtn.cloneNode(true);
+                    okBtn.parentNode.replaceChild(newOkBtn, okBtn);
+                    cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+                    newOkBtn.onclick = () => { m.classList.remove('active'); res(true); };
+                    newCancelBtn.onclick = () => { m.classList.remove('active'); res(false); };
+                });
+            },
+
+            showToast: (msg) => {
+                const t = document.createElement('div'); 
+                t.style.cssText = `position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#333; color:#fff; padding:10px 20px; border-radius:30px; z-index:9999; font-size:0.9rem; opacity:0; transition:opacity 0.3s; box-shadow:0 4px 10px rgba(0,0,0,0.5);`;
+                t.innerText = msg;
+                document.body.appendChild(t); 
+                setTimeout(()=>t.style.opacity=1, 10);
+                setTimeout(()=>{ t.style.opacity=0; setTimeout(()=>t.remove(),400); },3000);
+            }
+        };
+
+        window.UIManager = UIManager;
+
+        // Global Functions
+        window.closeAllMenus = () => { };
+        
+        window.updateTabPosition = () => {
+            const tabs = ['mylog', 'logs', 'status'];
+            const idx = tabs.indexOf(State.currentSharedTab);
+            const slider = document.getElementById('tab-slider');
+            if (slider) {
+                slider.style.transform = `translateX(-${idx * 33.333}%)`; // 100/3
+            }
+        };
+
+        window.openInputModal = (reset = true, editId = null) => {
+            // 変更: サインインチェックを削除し、未ログインでも開けるようにする
+            /*
+            if (!State.user) {
+                UIManager.showToast("サインインが必要です");
+                window.handleAuthClick();
+                return;
+            }
+            */
+
+            document.getElementById('input-modal').classList.add('active');
+            
+            if (reset) {
+                State.editingId = null;
+                State.input = { floor: null, tour: null, vehicle: null, profile: null, suspendedTours: [], memo: '' };
+                State.maxStepReached = 0; 
+                // 初期値セット (現在日時)
+                const nowIso = Logic.getNowDatetimeLocalStr();
+                document.getElementById('hidden-datetime-picker').value = nowIso;
+                
+                const [d, t] = nowIso.split('T');
+                State.currentDateVal = d;
+                State.currentTimeVal = t;
+                
+                // 追加: 新規作成時は直前のログから休止ツアーを自動設定
+                State.input.suspendedTours = Logic.getSuspendedDefault(d, t);
+
+                State.currentStep = 0;
+                window.renderVehicleGrid(); 
+            } else if (editId) {
+                State.maxStepReached = 3;
+                State.currentStep = 0; // 変更: 修正時も最初のステップ(0)から開始
+            }
+            window.updateWizardUI();
+        };
+        
+        // 修正: 閉じる際にアニメーション待機後にリセット
+        window.closeInputModal = () => {
+            const modal = document.getElementById('input-modal');
+            modal.classList.remove('active');
+            
+            setTimeout(() => {
+                if(!modal.classList.contains('active')){
+                    State.currentStep = 0;
+                    window.updateWizardUI();
+                }
+            }, 350);
+        };
+
+        window.updateWizardUI = () => {
+            const slider = document.getElementById('wizard-slider');
+            slider.style.transform = `translateX(-${State.currentStep * 100}%)`;
+            
+            State.maxStepReached = Math.max(State.maxStepReached, State.currentStep);
+
+            for (let i=0; i<4; i++) {
+                const dot = document.getElementById(`dot-${i}`);
+                if(i === State.currentStep) {
+                    dot.className = 'dot active';
+                } else if (i < State.currentStep) {
+                    dot.className = 'dot completed';
+                } else {
+                    dot.className = 'dot';
+                }
+            }
+
+            const dateVal = document.getElementById('hidden-datetime-picker').value;
+            let displayTime = "--/-- --:--";
+            let dateValForCalc = Logic.getTodayStr(); // Default
+
+            if (dateVal) {
+                const [d, t] = dateVal.split('T');
+                State.currentDateVal = d;
+                State.currentTimeVal = t;
+                displayTime = `${d.replace(/-/g, '/')} <span style="margin-right: 1.5em;"></span> ${t}`;
+                dateValForCalc = d;
+            }
+            document.getElementById('status-date-time').innerHTML = displayTime;
+            
+            if (State.currentStep === 2) {
+                window.renderVehicleGrid();
+            }
+            
+            const s = State.input;
+            let statusText = "";
+            
+            const tourStr = s.tour ? s.tour : '-';
+            const floorStr = s.floor ? s.floor + 'F' : '-';
+            let locStr = `${tourStr}-${floorStr}`;
+            if (!s.tour && !s.floor) locStr = "---"; 
+
+            const vehicleStr = s.vehicle ? (s.vehicle === '不明' ? '-' : s.vehicle) : '-';
+            
+            statusText = `<span class="text-location">${locStr}</span> <span class="log-separator">/</span> <span class="log-label-no">No.</span><span class="text-vehicle">${vehicleStr}</span>`;
+            document.getElementById('status-selection').innerHTML = statusText;
+
+            const backBtn = document.getElementById('nav-back');
+            const nextBtn = document.getElementById('nav-next');
+            
+            backBtn.style.visibility = (State.currentStep === 0) ? 'hidden' : 'visible';
+
+            let canProceed = false;
+            if (State.currentStep === 0 && s.floor) canProceed = true;
+            if (State.currentStep === 1 && s.tour) canProceed = true;
+            if (State.currentStep === 2 && s.vehicle) canProceed = true;
+            if (State.currentStep === 3) canProceed = false; 
+            
+            nextBtn.disabled = !canProceed;
+            nextBtn.style.opacity = !canProceed ? '0.3' : '1';
+            if (State.currentStep === 3) nextBtn.style.visibility = 'hidden';
+            else nextBtn.style.visibility = 'visible';
+            
+            const quickSaveBtn = document.getElementById('header-quick-save-btn');
+            const isAllSet = s.floor && s.tour && s.vehicle;
+            quickSaveBtn.style.display = 'block'; 
+            quickSaveBtn.disabled = !isAllSet; 
+            
+            // 修正: 編集モード時は常に「修正する」ボタンにする
+            quickSaveBtn.innerText = State.editingId ? "修正する" : "記録する";
+
+            document.querySelectorAll('.step-btn-floor').forEach(b => b.classList.toggle('selected', parseInt(b.dataset.val) === s.floor));
+            
+            // 修正: ツアー選択ボタンの制御
+            // 選択中の日付における休止情報を取得 (自身の編集中ログを除く)
+            const dailyState = Logic.calculateDailyState(dateValForCalc, State.editingId);
+            
+            // 既存ログの休止情報 + 現在入力中の休止情報をマージ
+            const suspendedSet = new Set(s.suspendedTours);
+            if (dailyState.suspended.A) suspendedSet.add('A');
+            if (dailyState.suspended.B) suspendedSet.add('B');
+            if (dailyState.suspended.C) suspendedSet.add('C');
+
+            document.querySelectorAll('.step-btn-tour').forEach(b => {
+                const tVal = b.dataset.val;
+                b.classList.toggle('selected', tVal === s.tour);
+                if (suspendedSet.has(tVal)) {
+                    b.classList.add('btn-caution');
+                } else {
+                    b.classList.remove('btn-caution');
+                }
+            });
+            
+            document.querySelectorAll('.step-btn-vehicle').forEach(b => {
+                const val = b.dataset.val === '不明' ? '不明' : parseInt(b.dataset.val);
+                b.classList.toggle('selected', val === s.vehicle);
+            });
+            
+            if (State.currentStep === 3) {
+                // ここでのinnerText設定は上の共通処理でカバーされるため不要だが、念のため残すか削除可
+                // quickSaveBtn.innerText = State.editingId ? "修正する" : "記録する";
+                
+                const analysis = Logic.analyzeProfileStatus(State.currentDateVal, s.tour);
+                document.querySelectorAll('.profile-btn').forEach(b => {
+                    b.classList.toggle('selected', b.dataset.profile === s.profile);
+                    if (analysis.cautionProfiles.includes(b.dataset.profile)) {
+                        b.classList.add('btn-caution');
+                    } else {
+                        b.classList.remove('btn-caution');
+                    }
+                });
+
+                ['A', 'B', 'C'].forEach(t => {
+                    document.getElementById(`suspend-btn-${t}`).classList.toggle('active', s.suspendedTours.includes(t));
+                });
+                document.getElementById('memo-input').value = s.memo;
+            }
+        };
+
+        window.goNextStep = () => {
+            if (State.currentStep < 3) {
+                State.currentStep++;
+                window.updateWizardUI();
+            }
+        };
+
+        window.goPrevStep = () => {
+            if (State.currentStep > 0) {
+                State.currentStep--;
+                window.updateWizardUI();
+            }
+        };
+
+        window.selectFloor = (f) => {
+            State.input.floor = f;
+            window.goNextStep();
+        };
+
+        // 修正: async関数に変更し、休止ツアー選択時の確認を追加
+        window.selectTour = async (t) => {
+            const dateVal = window.getEffectiveDateVal();
+            
+            // 休止ツアー判定（非推奨チェック）
+            // calculateDailyStateで他ログからの休止情報を取得し、現在の入力(suspendedTours)とマージ
+            const dailyState = Logic.calculateDailyState(dateVal, State.editingId);
+            const suspendedSet = new Set(State.input.suspendedTours);
+            if (dailyState.suspended.A) suspendedSet.add('A');
+            if (dailyState.suspended.B) suspendedSet.add('B');
+            if (dailyState.suspended.C) suspendedSet.add('C');
+
+            // 選択したツアーが休止セットに含まれている場合は確認
+            if (suspendedSet.has(t)) {
+                if (!await UIManager.showConfirmModal("このツアーは運営休止の可能性があります。\n記録しますか？")) {
+                    return;
+                }
+            }
+            
+            // 追加: 選択したツアーが休止リストにあれば解除
+            const idx = State.input.suspendedTours.indexOf(t);
+            if(idx > -1) {
+                State.input.suspendedTours.splice(idx, 1);
+            }
+
+            State.input.tour = t;
+            const analysis = Logic.analyzeProfileStatus(dateVal, t);
+            if (analysis.defaultProfile) State.input.profile = analysis.defaultProfile;
+            window.goNextStep();
+        };
+
+        window.selectVehicle = async (v) => {
+            State.input.vehicle = v;
+            
+            // 呪いの演出トリガー削除済み
+
+            const dateVal = window.getEffectiveDateVal();
+            
+            // 使用済み機体（他乗り場）判定
+            const currentLoc = `${State.input.tour}-${State.input.floor}`;
+            const usedVehicles = [];
+            State.logs.forEach(l => {
+                if (l.date === dateVal && l.id !== State.editingId) {
+                    const logLoc = `${l.tour}-${l.floor}`;
+                    if (logLoc !== currentLoc && l.vehicle && l.vehicle !== '不明') {
+                        usedVehicles.push(parseInt(l.vehicle));
+                    }
+                }
+            });
+            
+            let msg = null;
+            if (v === 7) msg = CONSTANTS.MESSAGES.vehicle7Caution;
+            else if (usedVehicles.includes(v)) msg = CONSTANTS.MESSAGES.usedVehicleCaution;
+            
+            if (msg && !await UIManager.showConfirmModal(msg)) return;
+
+            window.goNextStep();
+        };
+        
+        window.editDateTime = () => {
+            const dPicker = document.getElementById('hidden-datetime-picker');
+            if('showPicker' in HTMLInputElement.prototype) {
+                dPicker.showPicker();
+            } else {
+                dPicker.click(); 
+            }
+        };
+        
+        document.getElementById('hidden-datetime-picker').onchange = (e) => {
+             // 時間が変更されたら、新規作成モードの場合は休止ツアーのデフォルトを再計算する
+             if (!State.editingId) {
+                 const val = e.target.value;
+                 if (val) {
+                     const [d, t] = val.split('T');
+                     State.input.suspendedTours = Logic.getSuspendedDefault(d, t);
+                 }
+             }
+             window.updateWizardUI();
+        };
+
+        window.handleProfileSelect = async (p) => {
+             const dateVal = State.currentDateVal || Logic.getTodayStr();
+             const analysis = Logic.analyzeProfileStatus(dateVal, State.input.tour);
+             if (analysis.cautionProfiles.includes(p)) {
+                 if (!await UIManager.showConfirmModal(`推奨設定とは異なります。\n「${CONSTANTS.PROFILES[p]}」を選択しますか？`)) return;
+             }
+             State.input.profile = p;
+             window.updateWizardUI();
+        };
+        
+        // ログイン関連関数 (追加)
+        window.openLoginModal = () => {
+            document.getElementById('login-modal').classList.add('active');
+        };
+
+        window.closeLoginModal = () => {
+            document.getElementById('login-modal').classList.remove('active');
+        };
+
+        window.performLogin = async () => {
+            try {
+                const provider = new TwitterAuthProvider();
+                // 削除: provider.setCustomParameters({ force_login: 'true' });
+                
+                await signInWithPopup(auth, provider);
+                window.closeLoginModal();
+                UIManager.showToast("サインインしました");
+            } catch (error) {
+                console.error(error);
+                UIManager.showToast("サインイン失敗");
+            }
+        };
+
+        window.saveLog = async function() {
+            // 変更: 未ログイン時にログインモーダルを表示
+            if (!State.user) {
+                window.openLoginModal();
+                return;
+            }
+            
+            const dateVal = State.currentDateVal;
+            const timeVal = State.currentTimeVal; 
+            
+            State.input.memo = document.getElementById('memo-input').value;
+
+            const data = {
+                date: dateVal, time: timeVal,
+                floor: State.input.floor, tour: State.input.tour, vehicle: State.input.vehicle, profile: State.input.profile,
+                suspended: State.input.suspendedTours, memo: State.input.memo, 
+                author: { 
+                    uid: State.user.uid, 
+                    name: State.user.displayName, 
+                    photoURL: State.user.photoURL || null 
+                }
+            };
+
+            const btn = document.getElementById('header-quick-save-btn');
+            if(btn) btn.innerText = "...";
+            
+            const paths = window.getPaths(State.user.uid);
+
+            try {
+                if (State.editingId) await updateDoc(doc(paths.logs, State.editingId), data);
+                else await addDoc(paths.logs, { ...data, createdAt: serverTimestamp() });
+                
+                if (State.publishedDates.has(data.date)) await window.syncSharedReport(data.date);
+                
+                UIManager.showToast(State.editingId ? "修正しました" : "保存完了"); 
+                window.closeInputModal(); 
+            } catch (e) { console.error(e); UIManager.showToast("保存失敗: " + e.code); } 
+            finally { if(btn) btn.innerText = State.editingId ? "修正する" : "記録する"; }
+        };
+
+        // 共通コンポーネント: 日ごとのロググループHTML生成
+        window.renderDailyGroupHTML = (date, logs, options = {}) => {
+            const {
+                isOpen = false,
+                showToggle = false, // マイログ用: 公開トグルを表示するか
+                isPublished = false, // マイログ用: 公開状態か
+                isSharedView = false // みんなのログ用: プロフィール画像を表示するか等の制御
+            } = options;
+
+            const dateDisplay = date.replace(/-/g, '/');
+            
+            // ヘッダー右側（トグルスイッチ等）
+            let rightContent = '';
+            if (showToggle) {
+                rightContent = `
+                    <div class="summary-right">
+                        <span class="publish-status-text ${isPublished ? 'active' : ''}">${isPublished ? '公開中' : '非公開'}</span>
+                        <label class="toggle-switch-sm" onclick="event.stopPropagation();">
+                            <input type="checkbox" ${isPublished ? 'checked' : ''} onchange="window.handleTogglePublish('${date}', this)">
+                            <span class="slider-sm"></span>
+                        </label>
+                    </div>`;
+            } else {
+                // みんなのログでは右側に何も表示しない
+                rightContent = `<div class="summary-right"></div>`;
+            }
+
+            let listHtml = '';
+            logs.forEach(l => {
+                // マイログ画面(showToggle=true)なら常に「自分のログ」として扱う
+                // みんなのログ画面なら、ログインユーザーと一致するかチェック
+                const isMine = showToggle ? true : (State.user && l.author && l.author.uid === State.user.uid);
+                listHtml += window.createLogEntryHTML(l, isMine, isSharedView);
+            });
+
+            return `
+                <details class="daily-log" ${isOpen ? 'open' : ''} data-date="${date}">
+                    <summary class="daily-summary">
+                        <div class="summary-left">
+                            <span class="material-symbols-outlined">chevron_right</span>
+                            <div class="summary-info">
+                                <span class="summary-date">${dateDisplay}</span> 
+                                <span class="summary-count">${logs.length}件</span>
+                            </div>
+                        </div>
+                        ${rightContent}
+                    </summary>
+                    <div class="history-content">
+                        <div class="log-list">
+                            ${listHtml}
+                        </div>
+                    </div>
+                </details>
+            `;
+        };
+
+        window.createLogEntryHTML = (l, isMyLog, isSharedView = false) => { 
+             const vehicleStr = l.vehicle ? l.vehicle : '--';
+             const profileName = (l.profile && l.profile !== 'UNKNOWN' && l.profile !== 'TOWER 1') ? CONSTANTS.PROFILES[l.profile] : '';
+             const memoHtml = l.memo ? `<div class="log-memo-line">${l.memo}</div>` : '';
+             const gridClass = isSharedView ? "log-grid log-grid-shared" : "log-grid log-grid-my";
+             const showIcon = isSharedView; 
+             const iconImg = showIcon ? `<img src="${l.author.photoURL || ''}" class="author-icon-list" onerror="this.style.display='none'">` : '';
+             
+             let actionHtml = '';
+             if (isMyLog) {
+                  actionHtml = `
+                  <div class="log-actions mobile-only" style="display:flex;">
+                      <button class="icon-btn" onclick="window.openActionSheet('${l.id}')"><span class="material-symbols-outlined">more_vert</span></button>
+                  </div>
+                  <div class="log-actions desktop-only">
+                     <button class="icon-btn" onclick="window.handleEditLog('${l.id}')"><span class="material-symbols-outlined">edit</span></button>
+                     <button class="icon-btn" onclick="window.handleDeleteLog('${l.id}')"><span class="material-symbols-outlined">delete</span></button>
+                  </div>`;
+             }
+             return `<div class="log-entry ${isSharedView ? 'shared-log-entry' : ''}" id="log-${l.id}"><div class="${gridClass}">${iconImg}<div class="log-count">#${l.displayCount||l.count}</div><div class="log-time">${l.time||'--:--'}</div><div class="log-content-wrapper"><div class="log-main-line"><span class="text-location">${l.tour}-${l.floor}F</span> <span class="log-separator">/</span> <span class="log-label-no">No.</span><span class="text-vehicle">${vehicleStr}</span>${profileName ? `<span class="text-profile">(${profileName})</span>` : ''}</div>${memoHtml}</div>${actionHtml}</div></div>`;
+        };
+
+        // Swipe handler
+        const modalBody = document.querySelector('.modal-body');
+        if (modalBody) {
+            let startX = 0;
+            modalBody.addEventListener('touchstart', e => startX = e.touches[0].clientX, {passive: true});
+            modalBody.addEventListener('touchend', e => {
+                const diff = e.changedTouches[0].clientX - startX;
+                if (Math.abs(diff) > 50) {
+                    const nextBtn = document.getElementById('nav-next');
+                    if (diff < 0) { // Next
+                        if (!nextBtn.disabled) window.goNextStep();
+                    } else { // Prev
+                         window.goPrevStep();
+                    }
+                }
+            });
+        }
+        
+        const mainContent = document.querySelector('.content-area');
+        if (mainContent) {
+            let startX = 0;
+            mainContent.addEventListener('touchstart', e => startX = e.touches[0].clientX, {passive: true});
+            mainContent.addEventListener('touchend', e => {
+                const diff = e.changedTouches[0].clientX - startX;
+                if (Math.abs(diff) > 80) {
+                    const tabs = ['mylog', 'logs', 'status'];
+                    const currentIdx = tabs.indexOf(State.currentSharedTab);
+                    let nextIdx = currentIdx;
+                    if (diff < 0 && currentIdx < tabs.length - 1) nextIdx++; // Left swipe -> Next tab
+                    else if (diff > 0 && currentIdx > 0) nextIdx--; // Right swipe -> Prev tab
+                    
+                    if (nextIdx !== currentIdx) {
+                         const targetTab = tabs[nextIdx];
+                         const btn = document.querySelector(`.tab-btn[data-tab="${targetTab}"]`);
+                         if(btn) btn.click();
+                    }
+                }
+            });
+        }
+
+        window.loadSharedReports = async () => {
+             const paths = window.getPaths(State.user?.uid || 'guest');
+             if(!paths) return;
+
+             try {
+                 const q = query(paths.shared, orderBy('date', 'desc'), limit(50));
+                 const snapshot = await getDocs(q);
+                 State.sharedReports = snapshot.docs.map(d => d.data());
+             } catch(e) { console.error(e); }
+             
+             if(State.currentSharedTab !== 'mylog') window.renderMainContent(); 
+        };
+
+        window.handleAuthClick = async () => {
+            if (State.user) {
+                if (await UIManager.showConfirmModal(CONSTANTS.MESSAGES.confirmLogout)) {
+                    try { await signOut(auth); } catch (e) { console.error(e); }
+                }
+            } else {
+                // 変更: 未ログイン時はログインモーダルを表示
+                window.openLoginModal();
+                /*
+                try { await signInWithPopup(auth, new TwitterAuthProvider()); }
+                catch (error) { console.error(error); UIManager.showToast("ログイン失敗"); }
+                */
+            }
+        };
+
+        window.renderMainContent = () => {
+            const myLogContainer = document.getElementById('pane-mylog');
+            const logsContainer = document.getElementById('pane-logs');
+            const statusContainer = document.getElementById('pane-status');
+
+            if (State.currentSharedTab === 'mylog' && myLogContainer) {
+                 // フィルター削除済み
+                 UIManager.renderHistory(document.getElementById('mylog-list-area'));
+            }
+            
+            // Shared Logic
+            if (State.sharedReports.length === 0) {
+                 // 修正: メッセージを統一
+                 if(logsContainer) logsContainer.innerHTML = `<div class="status-message">記録がありません</div>`;
+                 if(statusContainer) statusContainer.innerHTML = `<div class="status-message">記録がありません</div>`;
+            } else {
+                 const allLogs = [];
+                 State.sharedReports.forEach(report => {
+                    if (report.logs) {
+                        report.logs.forEach(log => { allLogs.push({ ...log, date: report.date, author: report.author }); });
+                    }
+                 });
+                 // Remove global sort here, we will sort per date group
+                 const groupedLogs = {};
+                 allLogs.forEach(log => { if (!groupedLogs[log.date]) groupedLogs[log.date] = []; groupedLogs[log.date].push(log); });
+                 
+                 // Helper to calculate display counts per user and sort by time DESC
+                 const processLogsForDisplay = (logs) => {
+                     // 1. Group by author
+                     const userLogs = {};
+                     logs.forEach(l => {
+                         const uid = l.author.uid;
+                         if (!userLogs[uid]) userLogs[uid] = [];
+                         userLogs[uid].push(l);
+                     });
+                     
+                     // 2. Assign counts based on time ASC
+                     Object.values(userLogs).forEach(arr => {
+                         arr.sort((a,b) => (a.time || "").localeCompare(b.time || ""));
+                         arr.forEach((l, idx) => { l.displayCount = idx + 1; });
+                     });
+                     
+                     // 3. Sort entire daily list by time DESC for display
+                     return logs.sort((a,b) => (b.time || "").localeCompare(a.time || ""));
+                 };
+
+                 let logsHtml = `<div class="shared-content-inner">`; 
+                 const sortedDates = Object.keys(groupedLogs).sort((a,b)=>b.localeCompare(a));
+                 const todayStr = Logic.getTodayStr();
+                 
+                 if(groupedLogs[todayStr]) {
+                    const dailyLogs = processLogsForDisplay(groupedLogs[todayStr]);
+                    logsHtml += window.renderDailyGroupHTML(todayStr, dailyLogs, {
+                        isOpen: true,
+                        showToggle: false,
+                        isSharedView: true
+                    });
+                 }
+                 const pastDates = sortedDates.filter(d => d !== todayStr);
+                 if (pastDates.length > 0) {
+                    // logsHtml += `<div class="past-log-label">過去のログ</div>`; 
+                    pastDates.forEach(date => {
+                        const dailyLogs = processLogsForDisplay(groupedLogs[date]);
+                        logsHtml += window.renderDailyGroupHTML(date, dailyLogs, {
+                            isOpen: false,
+                            showToggle: false,
+                            isSharedView: true
+                        });
+                    });
+                 }
+                 logsHtml += `</div>`;
+                 if(logsContainer) logsContainer.innerHTML = logsHtml;
+
+                 const groupedReports = {};
+                 const sortedReports = [...State.sharedReports].sort((a,b) => b.date.localeCompare(a.date));
+                 sortedReports.forEach(r => { if (!groupedReports[r.date]) groupedReports[r.date] = []; groupedReports[r.date].push(r); });
+
+                 let statusHtml = `
+                <div class="status-scroll-wrapper">
+                    <table class="shared-status-table">
+                        <thead>
+                            <tr>
+                                <th rowspan="2" class="fixed-col-date">日付</th>
+                                <th colspan="2">TOUR A</th>
+                                <th colspan="2">TOUR B</th>
+                                <th colspan="2">TOUR C</th>
+                                <th rowspan="2" class="th-author">投稿者</th>
+                            </tr>
+                            <tr>
+                                <th class="col-tour">1F</th><th class="col-tour">2F</th>
+                                <th class="col-tour">1F</th><th class="col-tour">2F</th>
+                                <th class="col-tour">1F</th><th class="col-tour">2F</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+                
+                Object.keys(groupedReports).forEach(date => {
+                    const dailyReports = groupedReports[date].sort((a,b) => (b.author.uid || "").localeCompare(a.author.uid || ""));
+                    const getMergedVal = (tour, floor) => {
+                        const values = new Set();
+                        dailyReports.forEach(r => {
+                            const s = r.summary || { A: {}, B: {}, C: {} };
+                            const suspended = r.suspended || [];
+                            let val = '-';
+                            if (suspended.includes(tour)) val = '<span class="td-suspended" style="color:#ff5555;">×</span>';
+                            else if (s[tour] && s[tour][floor]) val = s[tour][floor];
+                            values.add(val);
+                        });
+                        return Array.from(values).join('<br>');
+                    };
+                    let authorsHtml = '<div class="author-list">';
+                    dailyReports.forEach(r => { authorsHtml += `<img src="${r.author.photoURL || ''}" class="author-icon-mini" onerror="this.style.display='none'" title="${r.author.name}">`; });
+                    authorsHtml += '</div>';
+                    statusHtml += `<tr><td class="fixed-col-date">${formatDate(date)}</td><td class="col-tour">${getMergedVal('A', 1)}</td><td class="col-tour">${getMergedVal('A', 2)}</td><td class="col-tour">${getMergedVal('B', 1)}</td><td class="col-tour">${getMergedVal('B', 2)}</td><td class="col-tour">${getMergedVal('C', 1)}</td><td class="col-tour">${getMergedVal('C', 2)}</td><td class="author-cell">${authorsHtml}</td></tr>`;
+                });
+                statusHtml += `</tbody></table></div>`;
+                if(statusContainer) statusContainer.innerHTML = statusHtml;
+            }
+            
+            window.updateTabPosition();
+        };
+        
+        window.syncSharedReport = async (dateStr) => {
+            const dailyData = Logic.calculateDailyState(dateStr);
+            const logs = State.logs.filter(l => l.date === dateStr);
+            const paths = window.getPaths(State.user.uid);
+            
+            // Document ID needs to be unique in shared collection, include UID
+            const reportId = dateStr + "_" + State.user.uid;
+            
+            if (logs.length === 0) {
+                try {
+                    await deleteDoc(doc(paths.shared, reportId));
+                    State.publishedDates.delete(dateStr);
+                } catch(e) {}
+                return;
+            }
+
+            const summary = { A: {}, B: {}, C: {} };
+            logs.forEach(l => { if(l.tour && l.floor && l.vehicle) summary[l.tour][l.floor] = l.vehicle; });
+            
+            const reportData = {
+                date: dateStr, summary: summary,
+                author: { 
+                    uid: State.user.uid, 
+                    name: State.user.displayName || "NoName", 
+                    photoURL: State.user.photoURL || null 
+                },
+                updatedAt: serverTimestamp(),
+                suspended: Array.from(Object.keys(dailyData.suspended).filter(k=>dailyData.suspended[k])),
+                logs: logs.map(l => ({ 
+                    id: l.id, 
+                    time: l.time || null, 
+                    tour: l.tour || null, 
+                    floor: l.floor || null, 
+                    vehicle: l.vehicle || null, 
+                    profile: l.profile || null, 
+                    memo: l.memo || null 
+                })) 
+            };
+            
+            await setDoc(doc(paths.shared, reportId), reportData); 
+        };
+
+        window.handleTogglePublish = async (dateStr, checkbox) => {
+            const isChecked = checkbox.checked;
+            const paths = window.getPaths(State.user.uid);
+            const reportId = dateStr + "_" + State.user.uid;
+
+            if (isChecked) {
+                if (!await UIManager.showConfirmModal(CONSTANTS.MESSAGES.confirmPublish)) {
+                    checkbox.checked = false; 
+                    return;
+                }
+                try {
+                    await window.syncSharedReport(dateStr);
+                    State.publishedDates.add(dateStr);
+                    UIManager.showToast("公開しました");
+                } catch (error) {
+                    console.error("Publish Error:", error);
+                    checkbox.checked = false;
+                    State.publishedDates.delete(dateStr);
+                    UIManager.showToast("公開失敗: " + error.code);
+                }
+            } else {
+                if (!await UIManager.showConfirmModal(CONSTANTS.MESSAGES.confirmUnpublish)) {
+                     checkbox.checked = true;
+                     return;
+                }
+                try {
+                    await deleteDoc(doc(paths.shared, reportId));
+                    State.publishedDates.delete(dateStr);
+                    UIManager.showToast("非公開にしました");
+                } catch(e) { 
+                    checkbox.checked = true; 
+                    UIManager.showToast("エラー"); 
+                }
+            }
+            window.renderMainContent(); 
+        };
+
+        window.handleDeleteLog = async (id) => {
+            if (await UIManager.showConfirmModal("削除しますか？")) {
+                const logToDelete = State.logs.find(l => l.id === id);
+                if (!logToDelete) return;
+                const dateToDelete = logToDelete.date;
+                const paths = window.getPaths(State.user.uid);
+
+                await deleteDoc(doc(paths.logs, id));
+                
+                if (State.publishedDates.has(dateToDelete)) {
+                    await window.syncSharedReport(dateToDelete);
+                }
+                
+                State.sharedReports = State.sharedReports.map(report => {
+                    if (report.date === dateToDelete && report.author.uid === State.user.uid) {
+                        const newLogs = report.logs.filter(l => l.id !== id);
+                        if (newLogs.length === 0) return null;
+                        const newSummary = { A: {}, B: {}, C: {} };
+                        newLogs.forEach(l => { if(l.tour && l.floor && l.vehicle) newSummary[l.tour][l.floor] = l.vehicle; });
+                        return { ...report, logs: newLogs, summary: newSummary };
+                    }
+                    return report;
+                }).filter(Boolean);
+
+                UIManager.showToast("削除しました");
+                window.renderMainContent(); 
+            }
+        };
+
+        window.handleEditLog = async (id) => {
+            let log = State.logs.find(l => l.id === id);
+            if (!log && State.user) {
+                 for (const report of State.sharedReports) {
+                     if (report.author.uid === State.user.uid && report.logs) {
+                         const found = report.logs.find(l => l.id === id);
+                         if (found) {
+                             log = { ...found, date: report.date }; 
+                             break;
+                         }
+                     }
+                 }
+            }
+            
+            if (log) {
+                State.editingId = id; 
+                State.input = { ...log, suspendedTours: log.suspended || [] };
+                
+                const dt = `${log.date}T${log.time || '00:00'}`;
+                document.getElementById('hidden-datetime-picker').value = dt;
+                
+                State.currentDateVal = log.date;
+                State.currentTimeVal = log.time || '';
+
+                window.openInputModal(false, id); 
+            }
+        };
+
+        window.handleVehicleClick = async (num, confirmMsg) => {
+            if (State.input.vehicle == num) { State.input.vehicle = null; UIManager.updateAll(); return; }
+            if (confirmMsg && !await UIManager.showConfirmModal(confirmMsg)) return;
+            State.input.vehicle = num;
+            UIManager.updateAll();
+        };
+
+        window.openActionSheet = (logId) => {
+            State.targetLogId = logId;
+            document.getElementById('action-sheet-modal').classList.add('active');
+        };
+
+        window.closeActionSheet = () => {
+            document.getElementById('action-sheet-modal').classList.remove('active');
+            State.targetLogId = null;
+        };
+
+        window.performAction = (action) => {
+            const id = State.targetLogId;
+            window.closeActionSheet();
+            if (!id) return;
+
+            if (action === 'edit') {
+                window.handleEditLog(id);
+            } else if (action === 'delete') {
+                window.handleDeleteLog(id);
+            }
+        };
+
+        /* Initialization */
+        window.onload = async () => {
+            UIManager.init();
+            
+            document.getElementById('auth-btn').onclick = window.handleAuthClick;
+
+             ['A','B','C'].forEach(t => {
+                 document.getElementById(`suspend-btn-${t}`).onclick = async () => {
+                     // 修正: 搭乗ツアーとの競合チェック
+                     if (State.input.tour === t) {
+                         if (!await UIManager.showConfirmModal(`現在、搭乗ツアーとして「${t}」が選択されています。\n解除して運営休止にしますか？`)) return;
+                         
+                         State.input.tour = null;
+                         if (!State.input.suspendedTours.includes(t)) {
+                             State.input.suspendedTours.push(t);
+                         }
+                         window.updateWizardUI();
+                         return;
+                     }
+
+                     // 通常の変更確認
+                     if (!await UIManager.showConfirmModal("運営状況を変更しますか？")) return;
+
+                     const idx = State.input.suspendedTours.indexOf(t);
+                     if(idx > -1) State.input.suspendedTours.splice(idx, 1);
+                     else State.input.suspendedTours.push(t);
+                     window.updateWizardUI();
+                 };
+             });
+             ['std', 'l13', 'shadow', 'unknown'].forEach((id, idx) => {
+                const pKeys = ['TOWER 1', 'TOWER 2', 'TOWER 3', 'UNKNOWN'];
+                document.getElementById(`prof-${id}`).onclick = () => window.handleProfileSelect(pKeys[idx]);
+            });
+             
+             document.getElementById('hidden-datetime-picker').addEventListener('change', async () => {
+                 window.updateWizardUI();
+             });
+             
+            let unsubscribeLogs = null;
+            let unsubscribeShared = null;
+            const configRef = doc(db, 'config', 'schedules');
+            onSnapshot(configRef, (doc) => { if (doc.exists()) { State.specialSchedules = doc.data().special_programs || []; } });
+
+            onAuthStateChanged(auth, user => {
+                State.user = user;
+                const authBtn = document.getElementById('auth-btn');
+                if (user) {
+                    const photoHtml = user.photoURL 
+                        ? `<img src="${user.photoURL}" class="auth-user-img" onerror="this.style.display='none'">` 
+                        : `<span class="material-symbols-outlined" style="font-size:32px;color:#888;">account_circle</span>`;
+                    authBtn.innerHTML = photoHtml;
+                    
+                    const paths = getPaths(user.uid);
+                    if (paths) {
+                        unsubscribeLogs = onSnapshot(paths.logs, (snap) => {
+                            State.logs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                            window.renderMainContent();
+                        });
+                        // My published logs
+                        const q = query(paths.shared, where("author.uid", "==", user.uid));
+                        unsubscribeShared = onSnapshot(q, (snap) => {
+                            State.publishedDates = new Set(snap.docs.map(d => d.data().date));
+                            window.renderMainContent();
+                        });
+                        // Also load all shared logs
+                        window.loadSharedReports();
+                    }
+                } else {
+                    authBtn.innerHTML = `<span class="material-symbols-outlined">login</span>`;
+                    State.logs = []; State.publishedDates = new Set();
+                    window.renderMainContent();
+                }
+            });
+        };
+    </script>
+</body>
+</html>
